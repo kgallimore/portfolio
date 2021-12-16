@@ -6,6 +6,30 @@
   import TransitionButton from "./components/_TransitionButton.svelte";
   import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
   import questionMark from "./../models/questionMark.obj";
+  import remoteGo from "./../models/remoteGo.obj";
+  let remoteGoObj = new OBJLoader().parse(remoteGo);
+  let remoteGoColors = [
+    "black",
+    "black",
+    "black",
+    "#046307",
+    "teal",
+    "black",
+    "black",
+    "gray",
+    "gray",
+  ];
+  for (const [i, child] of (remoteGoObj.children as THREE.Mesh[]).entries()) {
+    child.material = new THREE.MeshPhongMaterial({
+      color: remoteGoColors[i],
+      flatShading: true,
+      shininess: 0,
+      specular: 0x000000,
+      side: THREE.DoubleSide,
+    });
+  }
+  let questionMarkObj = new OBJLoader().parse(questionMark);
+
   let spin = 0;
   let currentPosition = [-12, 0, 0];
   let target = [0, 0, 0];
@@ -23,9 +47,11 @@
     tech: string;
     languages: string;
     src?: string;
-    model?: string;
+    model?: THREE.Group;
     link?: string;
     scale?: number;
+    zPos?: number;
+    rotation?: Array<number>;
     geo?: THREE.BufferGeometry;
     color?: string;
   }> = [
@@ -36,7 +62,6 @@
         "A highly versatile tool for the custom map making scene of Warcraft III. With tools to implement ELO based balanced matchmaking, autohosting, integrating chat into discord, and more. (Partial Source)",
       xPos: 0,
       yPos: 0,
-      model: "",
       src: "https://github.com/kgallimore/wc3MultiToolSite",
       link: "https://war.trenchguns.com",
       languages: "Typescript",
@@ -48,7 +73,6 @@
       description: "An extension that cleans the user interface for Google Meet.",
       xPos: 12,
       yPos: 0,
-      model: "",
       link: "https://galli.dev",
       languages: "Typescript",
       tech: "Google Extension, Svelte, Node, Express, MariaDB, Websockets",
@@ -60,7 +84,10 @@
         "(Comssioned work) A hardware and software solution in order to click through a presentation on a remote computer from anywhere in the world. Accessible through a simple web page, or through a custom designed 4g connected remote clicker.",
       xPos: 24,
       yPos: 0,
-      model: "",
+      model: remoteGoObj,
+      rotation: [0, 1],
+      scale: 0.015,
+      zPos: 0.5,
       link: "https://go.galli.dev/",
       languages: "Javascript, Python, Arduino",
       tech: "Node, Express, MariaDB, SocketIO, KiCad, Autodesk Fusion 360",
@@ -73,7 +100,6 @@
       yPos: 12,
       geo: new THREE.SphereGeometry(0.5, 16, 16),
       //model: luckylp,
-      model: "",
       scale: 0.5,
       color: "yellow",
       link: "https://googlelp.com",
@@ -89,7 +115,6 @@
       yPos: 12,
       link: "https://call.gallimo.com",
       src: "https://github.com/kgallimore/simpleRTC",
-      model: "",
       languages: "Javascript, PHP",
       tech: "WebRTC, Node, Express, MariaDB, SocketIO, RecordRTC",
     },
@@ -100,7 +125,6 @@
       description: "A portfolio of my biggest projects to date.",
       xPos: 24,
       yPos: 12,
-      model: "",
       languages: "Typescript",
       tech: "Svelte, three.js, animejs, tailwind",
     },
@@ -110,8 +134,8 @@
       description:
         "Currently in the job market searching for work! Click \"View\" to view a redacted resume, and <a href='mailto:keith@gallimo.com'>feel free to email me at keith@gallimo.com</a> for a full resume or to get in touch!",
       xPos: 12,
-      yPos: 24,
-      model: questionMark,
+      yPos: 30,
+      model: questionMarkObj,
       languages: "Typescript, Javascript, Python, Java, C++, ...?",
       tech: "?",
       link: "/resume.jpg",
@@ -146,7 +170,6 @@
         0,
         Math.abs(currentPosition[2] - y),
       ];
-      console.log(differences);
       target[0] = x;
       target[2] = y;
       anime({
@@ -163,12 +186,12 @@
   {#each projects as project}
     {#if project.model}
       <SC.Primitive
-        object={new OBJLoader().parse(project.model)}
-        position={[project.xPos, 0.001, project.yPos]}
+        object={project.model}
+        position={[project.xPos, project.zPos ?? 0.001, project.yPos]}
         scale={project.scale
           ? [project.scale, project.scale, project.scale]
           : [0.05, 0.05, 0.05]}
-        rotation={[0, spin, 0]}
+        rotation={[project.rotation?.[0] ?? 0, spin, project.rotation?.[1] ?? 0]}
       />
     {:else if project.geo}
       <SC.Mesh
@@ -176,7 +199,7 @@
         material={new THREE.MeshStandardMaterial({
           color: project.color ?? "#" + Math.floor(Math.random() * 16777215).toString(16),
         })}
-        position={[project.xPos, 0.001, project.yPos]}
+        position={[project.xPos, project.zPos ?? 0.001, project.yPos]}
         scale={[1, 1, 1]}
         rotation={[0, spin, 0]}
         castShadow
@@ -187,7 +210,7 @@
         material={new THREE.MeshStandardMaterial({
           color: project.color ?? "#" + Math.floor(Math.random() * 16777215).toString(16),
         })}
-        position={[project.xPos, 0.001, project.yPos]}
+        position={[project.xPos, project.zPos ?? 0.001, project.yPos]}
         scale={[1, 1, 1]}
         rotation={[0, spin, 0]}
         castShadow
@@ -228,7 +251,7 @@
 <div
   bind:this={cardContainer}
   style="bottom:-100%"
-  class="absolute flex animate-rollin z-50 h-48"
+  class="absolute flex animate-rollin z-50 h-64 md:h-48"
 >
   {#each projects as project, i}
     {#if i === 0}

@@ -16,7 +16,7 @@
   <div class="lg:w-9/12 flex md:w-11/12 sm:w-full w-full xl:w-8/12 items-center">
     <slot name="back" />
     <div
-      class="h-48 lg:h-auto lg:w-48 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l aspect-square text-center overflow-visible"
+      class="hidden md:block h-48 lg:h-auto lg:w-48 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l aspect-square text-center overflow-visible"
       style="background-color: grey"
     >
       <img
@@ -29,7 +29,16 @@
       class="border-r border-b border-l border-gray-400 lg:border-l-0 lg:border-t lg:border-gray-400 bg-white rounded-b lg:rounded-b-none lg:rounded-r p-4 flex flex-col justify-between leading-normal h-full w-full"
     >
       <div class="relative h-full">
-        <div class="text-gray-900 font-bold mb-2">
+        <div class="text-gray-900 font-bold mb-2 pb-2 w-full">
+          <div
+            class="inline-block right-0 md:hidden h-8 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l aspect-square text-center overflow-visible"
+          >
+            <img
+              src={data.image}
+              class="object-cover h-full w-full block m-auto"
+              alt={data.alt}
+            />
+          </div>
           {data.title}
           {#if data.link}
             <a
@@ -49,10 +58,10 @@
           {/if}
         </div>
 
-        <p class="text-gray-700 text-sm h-20 overflow-auto">
+        <p class="text-gray-700 text-xs md:text-sm h-24 md:h-3/4 overflow-auto">
           {@html data.description}
         </p>
-        <div class="absolute bottom-0 text-sm">
+        <div class="absolute bottom-0 text-xs md:text-sm">
           <p><strong>Languages:</strong> {data.languages}</p>
           <p><strong>Notable Tech:</strong> {data.tech}</p>
         </div>
