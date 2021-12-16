@@ -96,6 +96,7 @@
     {
       title: "This site",
       image: "site.png",
+      src: "https://github.com/kgallimore/portfolio",
       description: "A portfolio of my biggest projects to date.",
       xPos: 24,
       yPos: 12,
