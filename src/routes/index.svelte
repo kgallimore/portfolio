@@ -81,7 +81,7 @@
       title: "Remote Go!",
       image: "meetManage.png",
       description:
-        "(Comssioned work) A hardware and software solution in order to click through a presentation on a remote computer from anywhere in the world. Accessible through a simple web page, or through a custom designed 4g connected remote clicker.",
+        "A hardware and software solution in order to click through a presentation on a remote computer from anywhere in the world through a simple web page, or with a custom designed, 4g connected, remote clicker.",
       xPos: 24,
       yPos: 0,
       model: remoteGoObj,
@@ -251,7 +251,7 @@
 <div
   bind:this={cardContainer}
   style="bottom:-100%"
-  class="absolute flex animate-rollin z-50 h-64 md:h-48"
+  class="fixed flex animate-rollin z-50 h-64 md:h-48"
 >
   {#each projects as project, i}
     {#if i === 0}

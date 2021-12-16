@@ -13,7 +13,7 @@
 </script>
 
 <div class="flex justify-center pb-1 w-screen h-full">
-  <div class="lg:w-9/12 flex md:w-11/12 sm:w-full w-full xl:w-8/12 items-center">
+  <div class="lg:w-10/12 flex md:w-11/12 sm:w-full w-full xl:w-9/12 items-center">
     <slot name="back" />
     <div
       class="hidden md:block h-48 lg:h-auto lg:w-48 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l aspect-square text-center overflow-visible"
@@ -26,10 +26,10 @@
       />
     </div>
     <div
-      class="border-r border-b border-l border-gray-400 lg:border-l-0 lg:border-t lg:border-gray-400 bg-white rounded-b lg:rounded-b-none lg:rounded-r p-4 flex flex-col justify-between leading-normal h-full w-full"
+      class="border-r border-b border-l border-gray-400 lg:border-l-0 lg:border-t lg:border-gray-400 bg-white rounded-b lg:rounded-b-none lg:rounded-r p-4 flex flex-col justify-between leading-normal h-full w-full pt-2 pb-4"
     >
       <div class="relative h-full">
-        <div class="text-gray-900 font-bold mb-2 pb-2 w-full">
+        <div class="text-gray-900 font-bold w-full items-center flex">
           <div
             class="inline-block right-0 md:hidden h-8 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l aspect-square text-center overflow-visible"
           >
