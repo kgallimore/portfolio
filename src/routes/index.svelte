@@ -170,7 +170,9 @@
       index = index - projects.length;
     }
     if (index === projects.length - 1) {
-      return arraySize * 12;
+      return (
+        (arraySize - (arraySize - Math.ceil((projects.length - 1) / arraySize))) * 12
+      );
     }
     return (Math.floor(index / arraySize) || 0) * 12;
   }
