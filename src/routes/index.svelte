@@ -4,7 +4,7 @@
   import anime from "animejs";
   import CustomCard from "./components/_CustomCard.svelte";
   import TransitionButton from "./components/_TransitionButton.svelte";
-  import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
+  import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
   import questionMark from "./../models/questionMark.obj";
   let spin = 0;
   let currentPosition = [-12, 0, 0];
