@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+	<meta charset="utf-8" />
+	<meta name="description" content="" />
+	<link rel="icon" href="/favicon.png" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	%svelte.head%
+	<Style>
+		.customCard {
+			width: 50vw;
+		}
+
+		@media only screen and (max-width: 768px) {
+			.customCard {
+				width: 75vw;
+			}
+		}
+	</Style>
+</head>
+
+<body class="overflow-hidden">
+	<div id="svelte">%svelte.body%</div>
+</body>
+
+</html>
