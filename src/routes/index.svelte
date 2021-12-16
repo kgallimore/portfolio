@@ -20,6 +20,7 @@
     "gray",
   ];
   for (const [i, child] of (remoteGoObj.children as THREE.Mesh[]).entries()) {
+    child.castShadow = true;
     child.material = new THREE.MeshPhongMaterial({
       color: remoteGoColors[i],
       flatShading: true,
@@ -34,7 +35,7 @@
   let currentPosition = [-12, 0, 0];
   let target = [0, 0, 0];
   let cardContainer: HTMLElement;
-  let transitionSpeed = 0.015;
+  let transitionSpeed = 0.025;
   let fogLevel = 0.1;
   let cameraHeight = 1;
   let differences = [12, 0, 12];
@@ -42,8 +43,6 @@
     title: string;
     image: string;
     description: string;
-    xPos: number;
-    yPos: number;
     tech: string;
     languages: string;
     src?: string;
@@ -60,8 +59,6 @@
       image: "wc3_auto_balancer_v2.png",
       description:
         "A highly versatile tool for the custom map making scene of Warcraft III. With tools to implement ELO based balanced matchmaking, autohosting, integrating chat into discord, and more. (Partial Source)",
-      xPos: 0,
-      yPos: 0,
       src: "https://github.com/kgallimore/wc3MultiToolSite",
       link: "https://war.trenchguns.com",
       languages: "Typescript",
@@ -71,8 +68,6 @@
       title: "MeetManage",
       image: "meetManage.png",
       description: "An extension that cleans the user interface for Google Meet.",
-      xPos: 12,
-      yPos: 0,
       link: "https://galli.dev",
       languages: "Typescript",
       tech: "Google Extension, Svelte, Node, Express, MariaDB, Websockets",
@@ -82,8 +77,6 @@
       image: "meetManage.png",
       description:
         "A hardware and software solution in order to click through a presentation on a remote computer from anywhere in the world through a simple web page, or with a custom designed, 4g connected, remote clicker.",
-      xPos: 24,
-      yPos: 0,
       model: remoteGoObj,
       rotation: [0, 1],
       scale: 0.015,
@@ -96,8 +89,7 @@
       title: "LuckyLP",
       image: "smiley.svg",
       description: "A web application for users to vote on Lucky Patcher patchable apps.",
-      xPos: 0,
-      yPos: 12,
+
       geo: new THREE.SphereGeometry(0.5, 16, 16),
       //model: luckylp,
       scale: 0.5,
@@ -111,8 +103,6 @@
       image: "telephone-inbound-fill.svg",
       description:
         "A simple calling site for 1 to 1 calls, developed to experiment for a virtual show business. Call recording and automatic upload of source video after call ends. (Partial Source)",
-      xPos: 12,
-      yPos: 12,
       link: "https://call.gallimo.com",
       src: "https://github.com/kgallimore/simpleRTC",
       languages: "Javascript, PHP",
@@ -123,8 +113,6 @@
       image: "site.png",
       src: "https://github.com/kgallimore/portfolio",
       description: "A portfolio of my biggest projects to date.",
-      xPos: 24,
-      yPos: 12,
       languages: "Typescript",
       tech: "Svelte, three.js, animejs, tailwind",
     },
@@ -133,24 +121,24 @@
       image: "question-diamond.svg",
       description:
         "Currently in the job market searching for work! Click \"View\" to view a redacted resume, and <a href='mailto:keith@gallimo.com'>feel free to email me at keith@gallimo.com</a> for a full resume or to get in touch!",
-      xPos: 12,
-      yPos: 30,
       model: questionMarkObj,
       languages: "Typescript, Javascript, Python, Java, C++, ...?",
       tech: "?",
       link: "/resume.jpg",
     },
   ];
-  SC.onFrame(() => {
+  let arraySize = Math.ceil(Math.sqrt(projects.length));
+
+  setInterval(() => {
     spin += 0.005;
     if (
-      currentPosition[0] === projects[projects.length - 1].xPos &&
-      currentPosition[2] === projects[projects.length - 1].yPos
+      currentPosition[0] === getXPos(projects.length - 1) &&
+      currentPosition[2] === getYPos(projects.length - 1)
     ) {
-      if (fogLevel > 0.03) fogLevel -= 0.0002;
+      if (fogLevel > 0.02) fogLevel -= 0.0004;
       if (cameraHeight > 0.75) cameraHeight -= 0.0008;
     } else {
-      if (fogLevel < 0.1) fogLevel += 0.0002;
+      if (fogLevel < 0.1) fogLevel += 0.0004;
       if (cameraHeight < 1) cameraHeight += 0.0008;
     }
     for (let i = 0; i < 3; i++) {
@@ -162,7 +150,30 @@
         currentPosition[i] -= differences[i] * transitionSpeed;
       }
     }
-  });
+  }, 20);
+
+  function getXPos(index: number) {
+    if (index < 0) {
+      index = projects.length + index;
+    } else if (index > projects.length - 1) {
+      index = index - projects.length;
+    }
+    if (index === projects.length - 1) {
+      return ((arraySize - 1) * 12) / 2;
+    }
+    return (index % arraySize) * 12;
+  }
+  function getYPos(index: number) {
+    if (index < 0) {
+      index = projects.length + index;
+    } else if (index > projects.length - 1) {
+      index = index - projects.length;
+    }
+    if (index === projects.length - 1) {
+      return arraySize * 12;
+    }
+    return (Math.floor(index / arraySize) || 0) * 12;
+  }
   function navigate(x: number, y: number, shiftX: number) {
     if (target.every((value, index) => value === currentPosition[index])) {
       differences = [
@@ -176,41 +187,39 @@
         targets: cardContainer,
         translateX: (shiftX < 0 ? "-" : "+") + "=" + Math.abs(shiftX).toString() + "%",
         easing: "easeInOutSine",
-        duration: 10 / transitionSpeed,
+        duration: 20 / transitionSpeed,
       });
     }
   }
 </script>
 
 <SC.Canvas antialias shadows fog={new THREE.FogExp2("black", fogLevel)}>
-  {#each projects as project}
-    {#if project.model}
+  {#each projects as project, i}
+    {#if i === projects.length - 1}
       <SC.Primitive
         object={project.model}
-        position={[project.xPos, project.zPos ?? 0.001, project.yPos]}
+        position={[getXPos(i), project.zPos ?? 0.001, getYPos(i)]}
         scale={project.scale
           ? [project.scale, project.scale, project.scale]
           : [0.05, 0.05, 0.05]}
         rotation={[project.rotation?.[0] ?? 0, spin, project.rotation?.[1] ?? 0]}
       />
-    {:else if project.geo}
-      <SC.Mesh
-        geometry={project.geo}
-        material={new THREE.MeshStandardMaterial({
-          color: project.color ?? "#" + Math.floor(Math.random() * 16777215).toString(16),
-        })}
-        position={[project.xPos, project.zPos ?? 0.001, project.yPos]}
-        scale={[1, 1, 1]}
-        rotation={[0, spin, 0]}
-        castShadow
+    {:else if project.model}
+      <SC.Primitive
+        object={project.model}
+        position={[getXPos(i), project.zPos ?? 0.001, getYPos(i)]}
+        scale={project.scale
+          ? [project.scale, project.scale, project.scale]
+          : [0.05, 0.05, 0.05]}
+        rotation={[project.rotation?.[0] ?? 0, spin, project.rotation?.[1] ?? 0]}
       />
     {:else}
       <SC.Mesh
-        geometry={new THREE.BoxGeometry()}
+        geometry={project.geo ?? new THREE.BoxGeometry()}
         material={new THREE.MeshStandardMaterial({
           color: project.color ?? "#" + Math.floor(Math.random() * 16777215).toString(16),
         })}
-        position={[project.xPos, project.zPos ?? 0.001, project.yPos]}
+        position={[getXPos(i), project.zPos ?? 0.001, getYPos(i)]}
         scale={[1, 1, 1]}
         rotation={[0, spin, 0]}
         castShadow
@@ -220,9 +229,10 @@
 
   <SC.Group position={[0, -1 / 2, 0]}>
     <SC.Mesh
-      geometry={new THREE.PlaneGeometry(80, 80)}
+      geometry={new THREE.PlaneGeometry(120, 80)}
       material={new THREE.MeshStandardMaterial({ color: "red" })}
       rotation={[-Math.PI / 2, 0, 0]}
+      position={[12, 0, 0]}
       receiveShadow
     />
   </SC.Group>
@@ -244,7 +254,7 @@
   />
   <SC.DirectionalLight
     intensity={0.8}
-    position={[24, 3, 0]}
+    position={[24, 3, -3]}
     shadow={{ mapSize: [2048, 2048] }}
   />
 </SC.Canvas>
@@ -254,64 +264,32 @@
   class="fixed flex animate-rollin z-50 h-64 md:h-48"
 >
   {#each projects as project, i}
-    {#if i === 0}
-      <CustomCard data={project}>
-        <TransitionButton
-          slot="back"
-          title={projects[projects.length - 1].title}
-          on:click={() => {
-            navigate(
-              projects[projects.length - 1].xPos,
-              projects[projects.length - 1].yPos,
-              -100 + 100 / projects.length
-            );
-          }}
-        />
-        <TransitionButton
-          slot="forward"
-          title={projects[i + 1].title}
-          reverseDir={true}
-          on:click={() => {
-            navigate(projects[i + 1].xPos, projects[i + 1].yPos, -100 / projects.length);
-          }}
-        />
-      </CustomCard>
-    {:else if i === projects.length - 1}
-      <CustomCard data={project}>
-        <TransitionButton
-          slot="back"
-          title={projects[i - 1].title}
-          on:click={() => {
-            navigate(projects[i - 1].xPos, projects[i - 1].yPos, 100 / projects.length);
-          }}
-        />
-        <TransitionButton
-          slot="forward"
-          title={projects[0].title}
-          reverseDir={true}
-          on:click={() => {
-            navigate(projects[0].xPos, projects[0].yPos, 100 - 100 / projects.length);
-          }}
-        />
-      </CustomCard>
-    {:else}
-      <CustomCard data={project}>
-        <TransitionButton
-          slot="back"
-          title={projects[i - 1].title}
-          on:click={() => {
-            navigate(projects[i - 1].xPos, projects[i - 1].yPos, 100 / projects.length);
-          }}
-        />
-        <TransitionButton
-          slot="forward"
-          title={projects[i + 1].title}
-          reverseDir={true}
-          on:click={() => {
-            navigate(projects[i + 1].xPos, projects[i + 1].yPos, -100 / projects.length);
-          }}
-        />
-      </CustomCard>
-    {/if}
+    <CustomCard data={project}>
+      <TransitionButton
+        slot="back"
+        title={projects[i === 0 ? projects.length - 1 : i - 1].title}
+        on:click={() => {
+          navigate(
+            getXPos(i - 1),
+            getYPos(i - 1),
+            i === 0 ? -100 + 100 / projects.length : 100 / projects.length
+          );
+        }}
+      />
+      <TransitionButton
+        slot="forward"
+        title={projects[i === projects.length - 1 ? 0 : i + 1].title}
+        reverseDir={true}
+        on:click={() => {
+          navigate(
+            getXPos(i + 1),
+            getYPos(i + 1),
+            i === projects.length - 1
+              ? 100 - 100 / projects.length
+              : -100 / projects.length
+          );
+        }}
+      />
+    </CustomCard>
   {/each}
 </div>
