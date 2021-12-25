@@ -8,7 +8,7 @@ const config = {
     extend: {
       keyframes: {
         rollin: {
-          "100%": { bottom: 0 },
+          "100%": { top: 0 },
         },
         cardSwipe: {
           "100%": { transform: "translate(-100%,-100%)" },

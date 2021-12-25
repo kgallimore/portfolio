@@ -177,7 +177,10 @@
     return (Math.floor(index / arraySize) || 0) * 12;
   }
   function navigate(x: number, y: number, shiftX: number) {
-    if (target.every((value, index) => value === currentPosition[index])) {
+    if (
+      target.every((value, index) => value === currentPosition[index]) &&
+      animeFinished
+    ) {
       differences = [
         Math.abs(currentPosition[0] - x),
         0,
@@ -190,7 +193,63 @@
         translateX: (shiftX < 0 ? "-" : "+") + "=" + Math.abs(shiftX).toString() + "%",
         easing: "easeInOutSine",
         duration: 20 / transitionSpeed,
+        begin: () => {
+          isDragging = true;
+          animeFinished = false;
+        },
+        complete: () => {
+          isDragging = false;
+          animeFinished = true;
+        },
       });
+    }
+  }
+
+  let animeFinished = true,
+    isDragging = false,
+    startPos = 0,
+    currentTranslate = 0,
+    prevTranslate = 0;
+
+  // Event callbacks
+  function touchStart(e: TouchEvent | MouseEvent) {
+    e.preventDefault();
+    startPos = getPositionX(e);
+    isDragging = true;
+  }
+
+  function touchEnd(e: TouchEvent | MouseEvent, i: number) {
+    e.preventDefault();
+    isDragging = false;
+    const movedBy = currentTranslate - prevTranslate;
+    if (movedBy < window.innerWidth / -4)
+      navigate(
+        getXPos(i + 1),
+        getYPos(i + 1),
+        i === projects.length - 1 ? 100 - 100 / projects.length : -100 / projects.length
+      );
+    if (movedBy > window.innerWidth / 4)
+      navigate(
+        getXPos(i - 1),
+        getYPos(i - 1),
+        i === 0 ? -100 + 100 / projects.length : 100 / projects.length
+      );
+  }
+
+  function touchMove(e: TouchEvent | MouseEvent) {
+    e.preventDefault();
+    if (isDragging) {
+      const currentPosition = getPositionX(e);
+      currentTranslate = prevTranslate + currentPosition - startPos;
+    }
+  }
+
+  // Helper functions
+  function getPositionX(event: TouchEvent | MouseEvent) {
+    if (event instanceof TouchEvent) {
+      return event.touches[0].clientX;
+    } else {
+      return event.pageX;
     }
   }
 </script>
@@ -262,11 +321,20 @@
 </SC.Canvas>
 <div
   bind:this={cardContainer}
-  style="bottom:-100%"
+  style="top:100%"
   class="fixed flex animate-rollin z-50 h-64 md:h-48"
 >
   {#each projects as project, i}
-    <CustomCard data={project}>
+    <CustomCard
+      on:touchstart={(e) => touchStart(e)}
+      on:mousedown={(e) => touchStart(e)}
+      on:touchend={(e) => touchEnd(e, i)}
+      on:mouseup={(e) => touchEnd(e, i)}
+      on:mouseleave={(e) => touchEnd(e, i)}
+      on:touchmove={(e) => touchMove(e)}
+      on:mousemove={(e) => touchMove(e)}
+      data={project}
+    >
       <TransitionButton
         slot="back"
         title={projects[i === 0 ? projects.length - 1 : i - 1].title}
