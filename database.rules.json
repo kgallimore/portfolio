@@ -1,0 +1,47 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "counts": {
+      "users": {
+        "$uid": {
+          ".write": "$uid === auth.uid",
+          ".read": "$uid === auth.uid",
+          "views": {
+            "$item": {
+              "views": {
+                ".validate": "root.child('counts/items/' + $item).exists() && newData.isNumber() && (newData.val() == 1 || newData.val() == data.val() + 1)"
+              },
+              "sourceViews": {
+                ".validate": "root.child('counts/items/' + $item).exists() && newData.isNumber() && (newData.val() == 1 || newData.val() == data.val() + 1)"
+              },
+              "linkViews": {
+                ".validate": "root.child('counts/items/' + $item).exists() && newData.isNumber() && (newData.val() == 1 || newData.val() == data.val() + 1)"
+              },
+              "$other": { ".validate": false }
+            }
+          },
+          "$other": { ".validate": false }
+        }
+      },
+      "visitors": {
+        ".read": true
+      },
+      "items": {
+        "$item": {
+          ".read": true,
+          "views": {
+            ".validate": "newData.isNumber() && (newData.val() == 0 || newData.val() == data.val() + 1)"
+          },
+          "sourceViews": {
+            ".validate": "newData.isNumber() && (newData.val() == 0 || newData.val() == data.val() + 1)"
+          },
+          "linkViews": {
+            ".validate": "newData.isNumber() && (newData.val() == 0 || newData.val() == data.val() + 1)"
+          },
+          "$other": { ".validate": false }
+        }
+      }
+    }
+  }
+}

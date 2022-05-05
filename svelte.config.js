@@ -13,14 +13,21 @@ const config = {
   ],
 
   kit: {
-    adapter: adapter(),
+    prerender: {
+      default: true,
+    },
+    adapter: adapter({
+      prerender: {
+        default: true,
+      },
+      fallback: "400.html",
+    }),
     vite: {
       /* ... */
       plugins: [ObjFileImport()],
     },
-    // hydrate the <div id="svelte"> element in src/app.html
-    target: "#svelte",
   },
+  ssr: {},
 };
 
 export default config;

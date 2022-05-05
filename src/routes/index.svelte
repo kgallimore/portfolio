@@ -1,139 +1,90 @@
 <script lang="ts">
   import * as THREE from "three";
   import * as SC from "svelte-cubed";
+  import type { Project } from "../config/projects";
   import anime from "animejs";
   import CustomCard from "./components/_CustomCard.svelte";
   import TransitionButton from "./components/_TransitionButton.svelte";
-  import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
-  import questionMark from "./../models/questionMark.obj";
-  import remoteGo from "./../models/remoteGo.obj";
-  let remoteGoObj = new OBJLoader().parse(remoteGo);
-  let remoteGoColors = [
-    "black",
-    "black",
-    "black",
-    "#046307",
-    "teal",
-    "black",
-    "black",
-    "gray",
-    "gray",
-  ];
-  for (const [i, child] of (remoteGoObj.children as THREE.Mesh[]).entries()) {
-    child.castShadow = true;
-    child.material = new THREE.MeshPhongMaterial({
-      color: remoteGoColors[i],
-      flatShading: true,
-      shininess: 0,
-      specular: 0x000000,
-      side: THREE.DoubleSide,
-    });
+  import { initializeApp } from "firebase/app";
+  import { getAuth, signInAnonymously, connectAuthEmulator } from "firebase/auth";
+  import { getDatabase, connectDatabaseEmulator, ref, onValue } from "firebase/database";
+  import {
+    getFirestore,
+    connectFirestoreEmulator,
+    addDoc,
+    serverTimestamp,
+    collection,
+  } from "firebase/firestore";
+  import { projects } from "../config/projects";
+
+  let projectList: Array<Project & { cleanName: string }> = projects.map((project) => ({
+    ...project,
+    cleanName: cleanName(project.title),
+  }));
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAYIuZUTcCzyH8LwSIRZuwtJ5_SJjxvRgA",
+    authDomain: "portfolio-c4d81.firebaseapp.com",
+    databaseURL: "https://portfolio-c4d81-default-rtdb.firebaseio.com",
+    projectId: "portfolio-c4d81",
+    storageBucket: "portfolio-c4d81.appspot.com",
+    messagingSenderId: "851128987202",
+    appId: "1:851128987202:web:d43372f27084b63089c7db",
+    measurementId: "G-VP40VH30BW",
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const database = getDatabase(app);
+  const firestore = getFirestore(app);
+
+  if (window.location.hostname === "localhost") {
+    connectAuthEmulator(auth, "http://localhost:9099");
+    connectDatabaseEmulator(database, "localhost", 9000);
+    connectFirestoreEmulator(firestore, "localhost", 8080);
   }
-  let questionMarkObj = new OBJLoader().parse(questionMark);
+  signInAnonymously(auth).then((user) => {
+    uid = user.user.uid;
+  });
+
+  let viewCounts: {
+    visitors: number;
+    items: { [key: string]: { views: number; linkViews: number; sourceViews: number } };
+  } = { visitors: 0, items: {} };
+  onValue(ref(database, "counts/visitors"), (snapshot) => {
+    viewCounts.visitors = snapshot.val();
+  });
+  onValue(ref(database, "counts/items"), (snapshot) => {
+    viewCounts.items = snapshot.val();
+    console.log("viewCounts", viewCounts);
+  });
 
   let spin = 0;
   let currentPosition = [-12, 0, 0];
+  let currentIndex = 0;
   let target = [0, 0, 0];
   let cardContainer: HTMLElement;
   let transitionSpeed = 0.025;
   let fogLevel = 0.1;
   let cameraHeight = 1;
   let differences = [12, 0, 12];
-  let projects: Array<{
-    title: string;
-    image: string;
-    description: string;
-    tech: string;
-    languages: string;
-    src?: string;
-    model?: THREE.Group;
-    link?: string;
-    scale?: number;
-    zPos?: number;
-    rotation?: Array<number>;
-    geo?: THREE.BufferGeometry;
-    color?: string;
-  }> = [
-    {
-      title: "WC3 Multi-Tool",
-      image: "wc3_auto_balancer_v2.png",
-      description:
-        "A highly versatile tool for the custom map making scene of Warcraft III. With tools to implement ELO based balanced matchmaking, autohosting, integrating chat into discord, and more. (Partial Source)",
-      src: "https://github.com/kgallimore/wc3MultiToolSite",
-      link: "https://war.trenchguns.com",
-      languages: "Typescript",
-      tech: "Electron, Svelte, Websockets",
-    },
-    {
-      title: "MeetManage",
-      image: "meetManage.png",
-      description: "An extension that cleans the user interface for Google Meet.",
-      link: "https://galli.dev",
-      languages: "Typescript",
-      tech: "Google Extension, Svelte, Node, Express, MariaDB, Websockets",
-    },
-    {
-      title: "Remote Go!",
-      image: "meetManage.png",
-      description:
-        "A hardware and software solution in order to click through a presentation on a remote computer from anywhere in the world through a simple web page, or with a custom designed, 4g connected, remote clicker.",
-      model: remoteGoObj,
-      rotation: [0, 1],
-      scale: 0.015,
-      zPos: 0.5,
-      link: "https://go.galli.dev/",
-      languages: "Javascript, Python, Arduino",
-      tech: "Node, Express, MariaDB, SocketIO, KiCad, Autodesk Fusion 360",
-    },
-    {
-      title: "LuckyLP",
-      image: "smiley.svg",
-      description: "A web application for users to vote on Lucky Patcher patchable apps.",
+  let projectNum = projectList.length;
 
-      geo: new THREE.SphereGeometry(0.5, 16, 16),
-      //model: luckylp,
-      scale: 0.5,
-      color: "yellow",
-      link: "https://googlelp.com",
-      languages: "PHP, Javascript",
-      tech: "",
-    },
-    {
-      title: "Simple RTC",
-      image: "telephone-inbound-fill.svg",
-      description:
-        "A simple calling site for 1 to 1 calls, developed to experiment for a virtual show business. Call recording and automatic upload of source video after call ends. (Partial Source)",
-      link: "https://call.gallimo.com",
-      src: "https://github.com/kgallimore/simpleRTC",
-      languages: "Javascript, PHP",
-      tech: "WebRTC, Node, Express, MariaDB, SocketIO, RecordRTC",
-    },
-    {
-      title: "This site",
-      image: "site.png",
-      src: "https://github.com/kgallimore/portfolio",
-      description: "A portfolio of my biggest projects to date.",
-      languages: "Typescript",
-      tech: "Svelte, three.js, animejs, tailwind",
-    },
-    {
-      title: "Your next project?",
-      image: "question-diamond.svg",
-      description:
-        "Currently in the job market searching for work! Click \"View\" to view a redacted resume, and <a href='mailto:keith@gallimo.com'>feel free to email me at keith@gallimo.com</a> for a full resume or to get in touch!",
-      model: questionMarkObj,
-      languages: "Typescript, Javascript, Python, Java, C++, ...?",
-      tech: "?",
-      link: "/resume.jpg",
-    },
-  ];
-  let arraySize = Math.ceil(Math.sqrt(projects.length));
+  let animeFinished = true,
+    isDragging = false,
+    startPos = 0,
+    currentTranslate = 0,
+    prevTranslate = 0;
+
+  let uid = "";
+
+  let arraySize = Math.ceil(Math.sqrt(projectNum));
 
   setInterval(() => {
     spin += 0.005;
     if (
-      currentPosition[0] === getXPos(projects.length - 1) &&
-      currentPosition[2] === getYPos(projects.length - 1)
+      currentPosition[0] === getXPos(projectNum - 1) &&
+      currentPosition[2] === getYPos(projectNum - 1)
     ) {
       if (fogLevel > 0.02) fogLevel -= 0.0004;
       if (cameraHeight > 0.75) cameraHeight -= 0.0008;
@@ -153,34 +104,32 @@
   }, 20);
 
   function getXPos(index: number) {
-    if (index < 0) {
-      index = projects.length + index;
-    } else if (index > projects.length - 1) {
-      index = index - projects.length;
-    }
-    if (index === projects.length - 1) {
+    if (index === projectNum - 1) {
       return ((arraySize - 1) * 12) / 2;
     }
     return (index % arraySize) * 12;
   }
+
   function getYPos(index: number) {
-    if (index < 0) {
-      index = projects.length + index;
-    } else if (index > projects.length - 1) {
-      index = index - projects.length;
-    }
-    if (index === projects.length - 1) {
-      return (
-        (arraySize - (arraySize - Math.ceil((projects.length - 1) / arraySize))) * 12
-      );
+    if (index === projectNum - 1) {
+      return (arraySize - (arraySize - Math.ceil((projectNum - 1) / arraySize))) * 12;
     }
     return (Math.floor(index / arraySize) || 0) * 12;
   }
-  function navigate(x: number, y: number, shiftX: number) {
+
+  function navigate(toIndex: number, shiftX: number) {
     if (
       target.every((value, index) => value === currentPosition[index]) &&
       animeFinished
     ) {
+      if (toIndex < 0) {
+        toIndex = projectNum + toIndex;
+      } else if (toIndex > projectNum - 1) {
+        toIndex = toIndex - projectNum;
+      }
+      let y = getYPos(toIndex);
+      let x = getXPos(toIndex);
+      console.log("navigating to", toIndex);
       differences = [
         Math.abs(currentPosition[0] - x),
         0,
@@ -200,16 +149,38 @@
         complete: () => {
           isDragging = false;
           animeFinished = true;
+          currentIndex = toIndex;
+          updateLinkClick("views");
         },
       });
     }
   }
 
-  let animeFinished = true,
-    isDragging = false,
-    startPos = 0,
-    currentTranslate = 0,
-    prevTranslate = 0;
+  function getCleanIndexName(index: number) {
+    return cleanName(projectList[index].title);
+  }
+
+  function cleanName(name: string) {
+    return name.replace(/[^a-zA-Z0-9]/g, "");
+  }
+
+  async function updateLinkClick(type: "linkViews" | "sourceViews" | "views") {
+    let cleanName = getCleanIndexName(currentIndex);
+    if (cleanName && uid) {
+      console.log("updating", type, cleanName);
+      try {
+        addDoc(collection(firestore, "users/" + uid + "/clicks"), {
+          type: type,
+          item: cleanName,
+          timestamp: serverTimestamp(),
+        });
+      } catch (e) {
+        console.log(e);
+      }
+    } else {
+      console.log("no uid or cleanName?");
+    }
+  }
 
   // Event callbacks
   function touchStart(e: TouchEvent | MouseEvent) {
@@ -223,17 +194,9 @@
     isDragging = false;
     const movedBy = currentTranslate - prevTranslate;
     if (movedBy < window.innerWidth / -4)
-      navigate(
-        getXPos(i + 1),
-        getYPos(i + 1),
-        i === projects.length - 1 ? 100 - 100 / projects.length : -100 / projects.length
-      );
+      navigate(i + 1, i === projectNum - 1 ? 100 - 100 / projectNum : -100 / projectNum);
     if (movedBy > window.innerWidth / 4)
-      navigate(
-        getXPos(i - 1),
-        getYPos(i - 1),
-        i === 0 ? -100 + 100 / projects.length : 100 / projects.length
-      );
+      navigate(i - 1, i === 0 ? -100 + 100 / projectNum : 100 / projectNum);
   }
 
   function touchMove(e: TouchEvent | MouseEvent) {
@@ -255,8 +218,8 @@
 </script>
 
 <SC.Canvas antialias shadows fog={new THREE.FogExp2("black", fogLevel)}>
-  {#each projects as project, i}
-    {#if i === projects.length - 1}
+  {#each projectList as project, i}
+    {#if i === projectNum - 1}
       <SC.Primitive
         object={project.model}
         position={[getXPos(i), project.zPos ?? 0.001, getYPos(i)]}
@@ -324,39 +287,30 @@
   style="top:100%"
   class="fixed flex animate-rollin z-50 h-64 md:h-48"
 >
-  {#each projects as project, i}
+  {#each projectList as project, i}
     <CustomCard
       on:touchstart={(e) => touchStart(e)}
-      on:mousedown={(e) => touchStart(e)}
       on:touchend={(e) => touchEnd(e, i)}
-      on:mouseup={(e) => touchEnd(e, i)}
-      on:mouseleave={(e) => touchEnd(e, i)}
       on:touchmove={(e) => touchMove(e)}
-      on:mousemove={(e) => touchMove(e)}
+      title={project.title}
       data={project}
+      onLinkClick={updateLinkClick}
     >
       <TransitionButton
         slot="back"
-        title={projects[i === 0 ? projects.length - 1 : i - 1].title}
+        title={projectList[i === 0 ? projectNum - 1 : i - 1].title}
         on:click={() => {
-          navigate(
-            getXPos(i - 1),
-            getYPos(i - 1),
-            i === 0 ? -100 + 100 / projects.length : 100 / projects.length
-          );
+          navigate(i - 1, i === 0 ? -100 + 100 / projectNum : 100 / projectNum);
         }}
       />
       <TransitionButton
         slot="forward"
-        title={projects[i === projects.length - 1 ? 0 : i + 1].title}
+        title={projectList[i === projectNum - 1 ? 0 : i + 1].title}
         reverseDir={true}
         on:click={() => {
           navigate(
-            getXPos(i + 1),
-            getYPos(i + 1),
-            i === projects.length - 1
-              ? 100 - 100 / projects.length
-              : -100 / projects.length
+            i + 1,
+            i === projectNum - 1 ? 100 - 100 / projectNum : -100 / projectNum
           );
         }}
       />

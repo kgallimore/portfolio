@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  function newData() {
+    return request.resource.data
+  }
+  match /databases/{database}/documents {
+    match /users/{uid}/clicks/{docID} {
+      allow read: if uid == request.uid;
+      allow create: if uid == request.auth.uid  && newData().keys().hasAll(["type", "timestamp", "item"]) && newData().keys().hasOnly(["type", "timestamp", "item"]) && newData().type in ["views", "sourceViews", "linkViews"] && newData().timestamp == request.time;
+    }
+    match /users/{uid}/views/{item} {
+      allow read: if uid == request.uid;
+    }
+    match /settings/projects {
+      allow read: if true
+    }
+  }
+}

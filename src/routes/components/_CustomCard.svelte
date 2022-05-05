@@ -1,15 +1,10 @@
 <script lang="ts">
-  export let data: {
-    title: string;
-    image: string;
-    description: string;
-    alt?: string;
-    link?: string;
-    src?: string;
-    languages: string;
-    tech: string;
-  };
-  data.alt = data.alt ? data.alt : data.title + " Logo";
+  import type { Project } from "../../config/projects";
+  export let title: string;
+  export let data: Project;
+  export let onLinkClick: (type: "linkViews" | "sourceViews") => void = () => {};
+
+  data.imageAlt = data.imageAlt ? data.imageAlt : title + " Logo";
 </script>
 
 <div
@@ -33,7 +28,7 @@
         <img
           src={data.image}
           class="object-cover h-full w-full block m-auto"
-          alt={data.alt}
+          alt={data.imageAlt}
         />
       </div>
       <div
@@ -47,12 +42,13 @@
               <img
                 src={data.image}
                 class="object-cover h-full w-full block m-auto"
-                alt={data.alt}
+                alt={data.imageAlt}
               />
             </div>
-            {data.title}
+            {title}
             {#if data.link}
               <a
+                on:click={() => onLinkClick("linkViews")}
                 href={data.link}
                 target="_blank"
                 class="rounded bg-gradient-to-br from-green-600 to-blue-600 p-2 m-2 hover:from-green-300 hover:to-blue-300 hover:text-gray-400"
@@ -61,6 +57,7 @@
             {/if}
             {#if data.src}
               <a
+                on:click={() => onLinkClick("sourceViews")}
                 href={data.src}
                 target="_blank"
                 class="rounded bg-gradient-to-br from-green-600 to-blue-600 p-2 m-2 hover:from-green-300 hover:to-blue-300 hover:text-gray-400"
