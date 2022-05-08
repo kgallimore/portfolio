@@ -9,7 +9,8 @@
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint --ignore-path .gitignore .",
-    "stop": "npx kill-port 9099 5001 9000 8080"
+    "stop": "npx kill-port 9099 5001 9000 8080",
+    "deploy": "firebase deploy --only \"functions,database,firestore\""
   },
   "devDependencies": {
     "@sveltejs/adapter-auto": "^1.0.0-next.40",
@@ -33,16 +34,14 @@
     "postcss-load-config": "^3.1.0",
     "svelte": "^3.48.0",
     "svelte-check": "^2.7.0",
-    "svelte-cubed": "^0.2.1",
     "svelte-preprocess": "^4.10.6",
     "tailwindcss": "^3.0.24",
     "three": "^0.135.0",
+    "threlte": "^3.1.2",
+    "tsconfig-paths": "^4.0.0",
     "tslib": "^2.4.0",
     "typescript": "^4.6.4",
     "unplugin-obj": "^0.1.2"
   },
-  "type": "module",
-  "dependencies": {
-    "firebase-functions": "^3.21.0"
-  }
+  "type": "module"
 }

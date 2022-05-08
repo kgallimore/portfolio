@@ -25,6 +25,9 @@ const config = {
     vite: {
       /* ... */
       plugins: [ObjFileImport()],
+      ssr: {
+        noExternal: ["three"],
+      },
     },
   },
   ssr: {},

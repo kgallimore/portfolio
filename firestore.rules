@@ -4,9 +4,9 @@ service cloud.firestore {
     return request.resource.data
   }
   match /databases/{database}/documents {
-    match /users/{uid}/clicks/{docID} {
+    match /clicks/{docID} {
       allow read: if uid == request.uid;
-      allow create: if uid == request.auth.uid  && newData().keys().hasAll(["type", "timestamp", "item"]) && newData().keys().hasOnly(["type", "timestamp", "item"]) && newData().type in ["views", "sourceViews", "linkViews"] && newData().timestamp == request.time;
+      allow create: if newData().keys().hasAll(["uid", "type", "timestamp", "item"]) && newData().keys().hasOnly(["uid", "type", "timestamp", "item"]) && newData().type in ["views", "sourceViews", "linkViews"] && newData().timestamp == request.time && newData().uid == request.auth.uid;
     }
     match /users/{uid}/views/{item} {
       allow read: if uid == request.uid;

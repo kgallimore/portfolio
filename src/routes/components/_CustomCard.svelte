@@ -1,8 +1,17 @@
 <script lang="ts">
-  import type { Project } from "../../config/projects";
+  import type { Project } from "../../projectsImport";
+  import { fly } from "svelte/transition";
   export let title: string;
   export let data: Project;
-  export let onLinkClick: (type: "linkViews" | "sourceViews") => void = () => {};
+  export let onLinkClick: (
+    type: "linkViews" | "sourceViews",
+    event: MouseEvent
+  ) => void = () => {};
+  export let clickCounts: { linkViews?: number; sourceViews?: number; views?: number } = {
+    linkViews: 0,
+    sourceViews: 0,
+    views: 0,
+  };
 
   data.imageAlt = data.imageAlt ? data.imageAlt : title + " Logo";
 </script>
@@ -17,7 +26,29 @@
   on:mousemove
   class="h-screen w-screen"
 >
-  <div class="h-2/3 w-full" />
+  <div class="h-2/3 w-full">
+    <div class="pt-12 w-full text-white text-center">
+      Interest:
+      {#key clickCounts?.views ?? 0}
+        <span in:fly={{ y: -20, duration: 2000 }}> {clickCounts?.views ?? 0}</span>
+      {/key}
+      View{clickCounts?.views === 1 ? "" : "s"}
+      {#if data.link}
+        {#key clickCounts?.linkViews ?? 0}
+          <span in:fly={{ y: -20, duration: 2000 }}> {clickCounts?.linkViews ?? 0}</span>
+        {/key}
+        View Click{clickCounts?.linkViews === 1 ? "" : "s"}
+      {/if}
+      {#if data.src}
+        {#key clickCounts?.sourceViews ?? 0}
+          <span in:fly={{ y: -20, duration: 2000 }}>
+            {clickCounts?.sourceViews ?? 0}</span
+          >
+        {/key}
+        Source Click{clickCounts?.sourceViews === 1 ? "" : "s"}
+      {/if}
+    </div>
+  </div>
   <div class="flex justify-center pb-1 w-screen h-1/3">
     <div class="lg:w-10/12 flex md:w-11/12 sm:w-full w-full xl:w-9/12 items-center">
       <slot name="back" />
@@ -48,7 +79,7 @@
             {title}
             {#if data.link}
               <a
-                on:click={() => onLinkClick("linkViews")}
+                on:click={(event) => onLinkClick("linkViews", event)}
                 href={data.link}
                 target="_blank"
                 class="rounded bg-gradient-to-br from-green-600 to-blue-600 p-2 m-2 hover:from-green-300 hover:to-blue-300 hover:text-gray-400"
@@ -57,7 +88,7 @@
             {/if}
             {#if data.src}
               <a
-                on:click={() => onLinkClick("sourceViews")}
+                on:click={(event) => onLinkClick("sourceViews", event)}
                 href={data.src}
                 target="_blank"
                 class="rounded bg-gradient-to-br from-green-600 to-blue-600 p-2 m-2 hover:from-green-300 hover:to-blue-300 hover:text-gray-400"

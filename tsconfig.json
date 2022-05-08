@@ -2,8 +2,8 @@
 	"compilerOptions": {
 		"moduleResolution": "node",
 		"module": "es2020",
-		"lib": ["es2020", "DOM"],
 		"target": "es2020",
+		"lib": ["es2020", "DOM"],
 		"types": ["unplugin-obj/obj"],
 		"importsNotUsedAsValues": "error",
 		"isolatedModules": true,
@@ -20,5 +20,10 @@
 			"$lib/*": ["src/lib/*"]
 		}
 	},
+	"ts-node": {
+		"compilerOptions": {
+		  "module": "CommonJS"
+		}
+	  },
 	"include": ["src/**/*.d.ts", "src/**/*.js", "src/**/*.ts", "src/**/*.svelte"]
 }

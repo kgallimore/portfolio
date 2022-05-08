@@ -1,7 +1,23 @@
 <script lang="ts">
-  import * as THREE from "three";
-  import * as SC from "svelte-cubed";
-  import type { Project } from "../config/projects";
+  import {
+    CircleBufferGeometry,
+    MeshStandardMaterial,
+    BoxBufferGeometry,
+    DoubleSide,
+    PlaneGeometry,
+  } from "three";
+  import {
+    AmbientLight,
+    Canvas,
+    DirectionalLight,
+    Group,
+    HemisphereLight,
+    FogExp2,
+    Object3DInstance,
+    Mesh,
+    OrbitControls,
+    PerspectiveCamera,
+  } from "threlte";
   import anime from "animejs";
   import CustomCard from "./components/_CustomCard.svelte";
   import TransitionButton from "./components/_TransitionButton.svelte";
@@ -15,23 +31,13 @@
     serverTimestamp,
     collection,
   } from "firebase/firestore";
-  import { projects } from "../config/projects";
+  import { projects, Project } from "../projectsImport";
+  import { firebaseConfig } from "../config/firebase";
 
   let projectList: Array<Project & { cleanName: string }> = projects.map((project) => ({
     ...project,
     cleanName: cleanName(project.title),
   }));
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAYIuZUTcCzyH8LwSIRZuwtJ5_SJjxvRgA",
-    authDomain: "portfolio-c4d81.firebaseapp.com",
-    databaseURL: "https://portfolio-c4d81-default-rtdb.firebaseio.com",
-    projectId: "portfolio-c4d81",
-    storageBucket: "portfolio-c4d81.appspot.com",
-    messagingSenderId: "851128987202",
-    appId: "1:851128987202:web:d43372f27084b63089c7db",
-    measurementId: "G-VP40VH30BW",
-  };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -45,19 +51,18 @@
   }
   signInAnonymously(auth).then((user) => {
     uid = user.user.uid;
+
+    onValue(ref(database, "counts"), (snapshot) => {
+      viewCounts = snapshot.val();
+    });
   });
 
   let viewCounts: {
     visitors: number;
-    items: { [key: string]: { views: number; linkViews: number; sourceViews: number } };
+    items: {
+      [key: string]: { views?: number; linkViews?: number; sourceViews?: number };
+    };
   } = { visitors: 0, items: {} };
-  onValue(ref(database, "counts/visitors"), (snapshot) => {
-    viewCounts.visitors = snapshot.val();
-  });
-  onValue(ref(database, "counts/items"), (snapshot) => {
-    viewCounts.items = snapshot.val();
-    console.log("viewCounts", viewCounts);
-  });
 
   let spin = 0;
   let currentPosition = [-12, 0, 0];
@@ -164,12 +169,18 @@
     return name.replace(/[^a-zA-Z0-9]/g, "");
   }
 
-  async function updateLinkClick(type: "linkViews" | "sourceViews" | "views") {
+  async function updateLinkClick(
+    type: "linkViews" | "sourceViews" | "views",
+    e?: MouseEvent
+  ) {
+    if (e) {
+      e.preventDefault();
+    }
     let cleanName = getCleanIndexName(currentIndex);
     if (cleanName && uid) {
-      console.log("updating", type, cleanName);
       try {
-        addDoc(collection(firestore, "users/" + uid + "/clicks"), {
+        addDoc(collection(firestore, "clicks"), {
+          uid,
           type: type,
           item: cleanName,
           timestamp: serverTimestamp(),
@@ -217,75 +228,86 @@
   }
 </script>
 
-<SC.Canvas antialias shadows fog={new THREE.FogExp2("black", fogLevel)}>
-  {#each projectList as project, i}
-    {#if i === projectNum - 1}
-      <SC.Primitive
-        object={project.model}
-        position={[getXPos(i), project.zPos ?? 0.001, getYPos(i)]}
-        scale={project.scale
-          ? [project.scale, project.scale, project.scale]
-          : [0.05, 0.05, 0.05]}
-        rotation={[project.rotation?.[0] ?? 0, spin, project.rotation?.[1] ?? 0]}
-      />
-    {:else if project.model}
-      <SC.Primitive
-        object={project.model}
-        position={[getXPos(i), project.zPos ?? 0.001, getYPos(i)]}
-        scale={project.scale
-          ? [project.scale, project.scale, project.scale]
-          : [0.05, 0.05, 0.05]}
-        rotation={[project.rotation?.[0] ?? 0, spin, project.rotation?.[1] ?? 0]}
-      />
-    {:else}
-      <SC.Mesh
-        geometry={project.geo ?? new THREE.BoxGeometry()}
-        material={new THREE.MeshStandardMaterial({
-          color: project.color ?? "#" + Math.floor(Math.random() * 16777215).toString(16),
-        })}
-        position={[getXPos(i), project.zPos ?? 0.001, getYPos(i)]}
-        scale={[1, 1, 1]}
-        rotation={[0, spin, 0]}
-        castShadow
-      />
-    {/if}
-  {/each}
-
-  <SC.Group position={[0, -1 / 2, 0]}>
-    <SC.Mesh
-      geometry={new THREE.PlaneGeometry(120, 80)}
-      material={new THREE.MeshStandardMaterial({ color: "red" })}
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[12, 0, 0]}
-      receiveShadow
+<div class="h-screen w-screen">
+  <Canvas shadows={true}>
+    <PerspectiveCamera
+      position={{ x: currentPosition[0], y: cameraHeight, z: currentPosition[2] + 5 }}
+      lookAt={{ x: currentPosition[0], y: currentPosition[1], z: currentPosition[2] }}
     />
-  </SC.Group>
+    <AmbientLight intensity={0.2} />
+    <Group position={{ x: 0, y: -1 / 2, z: 0 }}>
+      <Mesh
+        receiveShadow
+        rotation={{ x: -90 * (Math.PI / 180) }}
+        geometry={new PlaneGeometry(120, 80)}
+        position={{ x: 12, y: 0, z: 0 }}
+        material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
+      />
+      <Mesh
+        receiveShadow
+        geometry={new PlaneGeometry(180, 80)}
+        position={{ x: 0, y: 0, z: -40 }}
+        material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
+      />
+    </Group>
+    <FogExp2 color={"black"} density={fogLevel} />
+    {#each projectList as project, i}
+      {#if i === projectNum - 1}
+        <Object3DInstance
+          object={project.model}
+          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+          scale={project.scale
+            ? { x: project.scale, y: project.scale, z: project.scale }
+            : { x: 0.05, y: 0.05, z: 0.05 }}
+          rotation={{
+            x: project.rotation?.[0] ?? 0,
+            y: spin,
+            z: project.rotation?.[1] ?? 0,
+          }}
+        />
+      {:else if project.model}
+        <Object3DInstance
+          object={project.model}
+          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+          scale={project.scale
+            ? { x: project.scale, y: project.scale, z: project.scale }
+            : { x: 0.05, y: 0.05, z: 0.05 }}
+          rotation={{
+            x: project.rotation?.[0] ?? 0,
+            y: spin,
+            z: project.rotation?.[1] ?? 0,
+          }}
+        />
+      {:else}
+        <Mesh
+          geometry={project.geo ?? new BoxBufferGeometry()}
+          material={new MeshStandardMaterial({
+            color:
+              project.color ?? "#" + Math.floor(Math.random() * 16777215).toString(16),
+          })}
+          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+          scale={{ x: 1, y: 1, z: 1 }}
+          rotation={{ x: 0, y: spin, z: 0 }}
+          castShadow
+        />
+      {/if}
+      <DirectionalLight
+        intensity={0.2}
+        position={{ x: getXPos(i) + 3, y: project.zPos ?? 0.001 + 5, z: getYPos(i) + 5 }}
+        shadow={{ mapSize: [2048, 2048] }}
+        target={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+      />
+    {/each}
+  </Canvas>
+</div>
 
-  <SC.PerspectiveCamera
-    position={[currentPosition[0], cameraHeight, currentPosition[2] + 5]}
-    target={currentPosition}
-  />
-  <SC.AmbientLight intensity={0.6} />
-  <SC.DirectionalLight
-    intensity={0.8}
-    position={[36, 3, 24]}
-    shadow={{ mapSize: [2048, 2048] }}
-  />
-  <SC.DirectionalLight
-    intensity={0.8}
-    position={[0, 3, 24]}
-    shadow={{ mapSize: [2048, 2048] }}
-  />
-  <SC.DirectionalLight
-    intensity={0.8}
-    position={[24, 3, -3]}
-    shadow={{ mapSize: [2048, 2048] }}
-  />
-</SC.Canvas>
+<div class="text-white text-xl z-50 w-screen fixed top-0 left-0 text-center">
+  Visitors: {viewCounts?.visitors ?? 0}
+</div>
 <div
   bind:this={cardContainer}
   style="top:100%"
-  class="fixed flex animate-rollin z-50 h-64 md:h-48"
+  class="fixed flex animate-rollin z-40 h-64 md:h-48"
 >
   {#each projectList as project, i}
     <CustomCard
@@ -295,6 +317,11 @@
       title={project.title}
       data={project}
       onLinkClick={updateLinkClick}
+      clickCounts={viewCounts?.items?.[project.cleanName] ?? {
+        views: 0,
+        linkViews: 0,
+        sourceViews: 0,
+      }}
     >
       <TransitionButton
         slot="back"

@@ -11,16 +11,17 @@ export const newVisitor = functions.auth.user().onCreate(async () => {
 });
 
 export const newClick = functions.firestore
-  .document("users/{uid}/clicks/{docID}")
-  .onCreate(async (snap, context) => {
+  .document("clicks/{docID}")
+  .onCreate(async (snap) => {
     const data = snap.data() as {
+      uid: string;
       timestamp: number;
       type: "views" | "sourceViews" | "linkViews";
       item: string;
     };
     admin
       .firestore(app)
-      .doc(`users/${context.params.uid}/views/${data.item}`)
+      .doc(`users/${data.uid}/views/${data.item}`)
       .set({ [data.type]: admin.firestore.FieldValue.increment(1) }, { merge: true });
   });
 export const newView = functions.firestore
@@ -45,7 +46,7 @@ export const newView = functions.firestore
 export const updateView = functions.firestore
   .document("users/{uid}/views/{item}")
   .onUpdate(async (snap, context) => {
-    const data = snap.after.data() as {
+    const after = snap.after.data() as {
       views?: number;
       linkViews?: number;
       sourceViews?: number;
@@ -56,10 +57,11 @@ export const updateView = functions.firestore
       linkViews?: number;
       sourceViews?: number;
     };
-
-    Object.entries(data).forEach(([type, data]) => {
-      const fixTypescript = type[0] as "views" | "linkViews" | "sourceViews";
-      if (data === 1 && before[fixTypescript] !== data) {
+    (
+      Object.entries(after) as Array<["views" | "linkViews" | "sourceViews", number]>
+    ).forEach(([type, data]) => {
+      // If the new data the first view and the old data was not the first view
+      if (data === 1 && before[type] !== data) {
         admin
           .database(app)
           .ref("counts/items/" + context.params.item + "/" + type)

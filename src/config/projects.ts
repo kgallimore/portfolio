@@ -16,8 +16,9 @@ const remoteGoColors = [
   "gray",
   "gray",
 ];
-for (const [i, child] of (remoteGoObj.children as THREE.Mesh[]).entries()) {
+for (const [i, child] of Object.entries(remoteGoObj.children)) {
   child.castShadow = true;
+  // @ts-expect-error Only broken in js
   child.material = new THREE.MeshPhongMaterial({
     color: remoteGoColors[i],
     flatShading: true,
@@ -27,55 +28,7 @@ for (const [i, child] of (remoteGoObj.children as THREE.Mesh[]).entries()) {
   });
 }
 const questionMarkObj = new OBJLoader().parse(questionMark);
-
-type TechTypes =
-  | "Docker"
-  | "Firebase"
-  | "Electron"
-  | "Svelte"
-  | "Websockets"
-  | "Chrome Extension"
-  | "Node"
-  | "Express"
-  | "MariaDB"
-  | "SocketIO"
-  | "KiCad"
-  | "Autodesk Fusion 360"
-  | "WebRTC"
-  | "RecordRTC"
-  | "tailwind"
-  | "three.js"
-  | "animejs"
-  | "?";
-
-type Languages =
-  | "Javascript"
-  | "Typescript"
-  | "PHP"
-  | "Python"
-  | "Arduino"
-  | "Java"
-  | "C++"
-  | "...?";
-
-export type Project = {
-  title: string;
-  image: string;
-  description: string;
-  tech: Array<TechTypes>;
-  languages: Array<Languages>;
-  imageAlt?: string;
-  src?: string;
-  model?: THREE.Group;
-  link?: string;
-  scale?: number;
-  zPos?: number;
-  rotation?: Array<number>;
-  geo?: THREE.BufferGeometry;
-  color?: string;
-};
-
-export const projects: Array<Project> = [
+export const projects = [
   {
     title: "WC3 Multi-Tool",
     image: "wc3_auto_balancer_v2.png",
