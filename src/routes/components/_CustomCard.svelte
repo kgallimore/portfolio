@@ -1,17 +1,24 @@
 <script lang="ts">
   import type { Project } from "../../projectsImport";
+  import TransitionButton from "./_TransitionButton.svelte";
   import { fly } from "svelte/transition";
   export let title: string;
   export let data: Project;
+  export let projectList: Array<Project & { cleanName: string }>;
+  export let navigate: (toIndex: number, shiftX: number) => void;
   export let onLinkClick: (
     type: "linkViews" | "sourceViews",
     event: MouseEvent
   ) => void = () => {};
+  export let index: number;
   export let clickCounts: { linkViews?: number; sourceViews?: number; views?: number } = {
     linkViews: 0,
     sourceViews: 0,
     views: 0,
   };
+
+  let previousProjectNum = index == 0 ? projectList.length - 1 : index - 1;
+  let nextProjectNum = index == projectList.length - 1 ? 0 : index + 1;
 
   data.imageAlt = data.imageAlt ? data.imageAlt : title + " Logo";
 </script>
@@ -51,7 +58,16 @@
   </div>
   <div class="flex justify-center pb-1 w-screen h-1/3">
     <div class="lg:w-10/12 flex md:w-11/12 sm:w-full w-full xl:w-9/12 items-center">
-      <slot name="back" />
+      <TransitionButton
+        slot="back"
+        title={projectList[previousProjectNum].title}
+        on:click={() => {
+          navigate(
+            index - 1,
+            index === 0 ? -100 + 100 / projectList.length : 100 / projectList.length
+          );
+        }}
+      />
       <div
         class="hidden md:block h-48 lg:h-auto lg:w-48 flex-none bg-cover rounded-t lg:rounded-t-none lg:rounded-l aspect-square text-center overflow-visible"
         style="background-color: grey"
@@ -106,7 +122,19 @@
           </div>
         </div>
       </div>
-      <slot name="forward" />
+      <TransitionButton
+        slot="forward"
+        title={projectList[nextProjectNum].title}
+        reverseDir={true}
+        on:click={() => {
+          navigate(
+            index + 1,
+            index === projectList.length - 1
+              ? 100 - 100 / projectList.length
+              : -100 / projectList.length
+          );
+        }}
+      />
     </div>
   </div>
 </div>

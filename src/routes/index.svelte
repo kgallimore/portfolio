@@ -18,8 +18,8 @@
   } from "threlte";
   import anime from "animejs";
   import CustomCard from "./components/_CustomCard.svelte";
-  import TransitionButton from "./components/_TransitionButton.svelte";
   import { initializeApp } from "firebase/app";
+  import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
   import { getAuth, signInAnonymously, connectAuthEmulator } from "firebase/auth";
   import { getDatabase, connectDatabaseEmulator, ref, onValue } from "firebase/database";
   import {
@@ -47,9 +47,18 @@
     connectAuthEmulator(auth, "http://localhost:9099");
     connectDatabaseEmulator(database, "localhost", 9000);
     connectFirestoreEmulator(firestore, "localhost", 8080);
+    //@ts-expect-error Enable debug mode for app check
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
   } else {
     const analytics = getAnalytics(app);
   }
+  const appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider("6Le7w9gfAAAAAHH-lf6elzalGriMiQMUkGgIj0qS"),
+
+    // Optional argument. If true, the SDK automatically refreshes App Check
+    // tokens as needed.
+    isTokenAutoRefreshEnabled: true,
+  });
   signInAnonymously(auth).then((user) => {
     uid = user.user.uid;
 
@@ -328,10 +337,10 @@
   style="top:100%"
   class="fixed flex animate-rollin z-40 h-64 md:h-48"
 >
-  {#each projectList as project, i}
+  {#each projectList as project, index}
     <CustomCard
       on:touchstart={(e) => touchStart(e)}
-      on:touchend={(e) => touchEnd(e, i)}
+      on:touchend={(e) => touchEnd(e, index)}
       on:touchmove={(e) => touchMove(e)}
       title={project.title}
       data={project}
@@ -341,25 +350,9 @@
         linkViews: 0,
         sourceViews: 0,
       }}
-    >
-      <TransitionButton
-        slot="back"
-        title={projectList[i === 0 ? projectNum - 1 : i - 1].title}
-        on:click={() => {
-          navigate(i - 1, i === 0 ? -100 + 100 / projectNum : 100 / projectNum);
-        }}
-      />
-      <TransitionButton
-        slot="forward"
-        title={projectList[i === projectNum - 1 ? 0 : i + 1].title}
-        reverseDir={true}
-        on:click={() => {
-          navigate(
-            i + 1,
-            i === projectNum - 1 ? 100 - 100 / projectNum : -100 / projectNum
-          );
-        }}
-      />
-    </CustomCard>
+      {navigate}
+      {index}
+      {projectList}
+    />
   {/each}
 </div>
