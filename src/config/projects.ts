@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
+import type { Project } from "../projectsImport";
 
 import questionMark from "./../models/questionMark.obj";
 import remoteGo from "./../models/remoteGo.obj";
@@ -28,14 +29,14 @@ for (const [i, child] of Object.entries(remoteGoObj.children)) {
   });
 }
 const questionMarkObj = new OBJLoader().parse(questionMark);
-export const projects = [
+export const projects: Array<Project> = [
   {
     title: "WC3 Multi-Tool",
     image: "wc3_auto_balancer_v2.png",
     description:
-      "A highly versatile tool for the custom map making scene of Warcraft III. With tools to implement ELO based balanced matchmaking, autohosting, integrating chat into discord, and more. (Partial Source)",
-    src: "https://github.com/kgallimore/wc3MultiToolSite",
-    link: "https://war.trenchguns.com",
+      "A tool that integrates into Warcraft 3 that implements many extra features: Permanent blacklist, whitelisting, autohosting, discord chat and rich presence integration, chat translator, custom map ELO and balancer, Twitch donation integration, OBS scene switcher, and more.",
+    src: "https://github.com/kgallimore/wc3MultiTool",
+    link: "https://www.hiveworkshop.com/threads/wc3-multi-tool.335492/",
     languages: ["Typescript"],
     tech: ["Electron", "Svelte", "Websockets"],
   },
@@ -43,7 +44,7 @@ export const projects = [
     title: "MeetManage",
     image: "meetManage.png",
     description: "An extension that cleans the user interface for Google Meet.",
-    link: "https://galli.dev",
+    link: "https://meetmanage.ferum.tech",
     languages: ["Typescript"],
     tech: [
       "Chrome Extension",

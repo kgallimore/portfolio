@@ -1,21 +1,19 @@
 <script lang="ts">
   import {
-    CircleBufferGeometry,
     MeshStandardMaterial,
     BoxBufferGeometry,
     DoubleSide,
     PlaneGeometry,
   } from "three";
   import {
+    GLTF,
     AmbientLight,
     Canvas,
     DirectionalLight,
     Group,
-    HemisphereLight,
     FogExp2,
     Object3DInstance,
     Mesh,
-    OrbitControls,
     PerspectiveCamera,
   } from "threlte";
   import anime from "animejs";
@@ -33,6 +31,7 @@
   } from "firebase/firestore";
   import { projects, Project } from "../projectsImport";
   import { firebaseConfig } from "../config/firebase";
+  import { getAnalytics } from "firebase/analytics";
 
   let projectList: Array<Project & { cleanName: string }> = projects.map((project) => ({
     ...project,
@@ -48,6 +47,8 @@
     connectAuthEmulator(auth, "http://localhost:9099");
     connectDatabaseEmulator(database, "localhost", 9000);
     connectFirestoreEmulator(firestore, "localhost", 8080);
+  } else {
+    const analytics = getAnalytics(app);
   }
   signInAnonymously(auth).then((user) => {
     uid = user.user.uid;
@@ -74,6 +75,7 @@
   let cameraHeight = 1;
   let differences = [12, 0, 12];
   let projectNum = projectList.length;
+  $: projectNum = projectList.length;
 
   let animeFinished = true,
     isDragging = false,
@@ -264,6 +266,8 @@
             y: spin,
             z: project.rotation?.[1] ?? 0,
           }}
+          castShadow
+          receiveShadow
         />
       {:else if project.model}
         <Object3DInstance
@@ -277,9 +281,23 @@
             y: spin,
             z: project.rotation?.[1] ?? 0,
           }}
+          castShadow
+          receiveShadow
+        />
+      {:else if project.glbFile}
+        <GLTF
+          castShadow
+          receiveShadow
+          url={"/models/" + project.glbFile}
+          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+          scale={project.scale
+            ? { x: project.scale, y: project.scale, z: project.scale }
+            : { x: 0.05, y: 0.05, z: 0.05 }}
         />
       {:else}
         <Mesh
+          interactive
+          on:click={() => alert("hey")}
           geometry={project.geo ?? new BoxBufferGeometry()}
           material={new MeshStandardMaterial({
             color:
@@ -288,6 +306,7 @@
           position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
           scale={{ x: 1, y: 1, z: 1 }}
           rotation={{ x: 0, y: spin, z: 0 }}
+          receiveShadow
           castShadow
         />
       {/if}

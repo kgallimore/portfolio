@@ -38,6 +38,7 @@ export type Project = {
   imageAlt?: string;
   src?: string;
   model?: THREE.Group;
+  glbFile?: string;
   link?: string;
   scale?: number;
   zPos?: number;
@@ -45,5 +46,5 @@ export type Project = {
   geo?: THREE.BufferGeometry;
   color?: string;
 };
-// @ts-expect-error The types string and techtypes are compatible
+
 export const projects: Array<Project> = data;
