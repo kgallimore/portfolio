@@ -14,9 +14,12 @@ const config = {
 
   kit: {
     prerender: {
-      enabled: false,
+      default: true,
     },
     adapter: adapter({
+      prerender: {
+        default: true,
+      },
       fallback: "400.html",
     }),
     vite: {
