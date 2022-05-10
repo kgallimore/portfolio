@@ -39,18 +39,9 @@
   }));
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const database = getDatabase(app);
-  const firestore = getFirestore(app);
-
   if (window.location.hostname === "localhost") {
-    connectAuthEmulator(auth, "http://localhost:9099");
-    connectDatabaseEmulator(database, "localhost", 9000);
-    connectFirestoreEmulator(firestore, "localhost", 8080);
     //@ts-expect-error Enable debug mode for app check
     self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-  } else {
-    const analytics = getAnalytics(app);
   }
   const appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider("6Le7w9gfAAAAAHH-lf6elzalGriMiQMUkGgIj0qS"),
@@ -59,6 +50,17 @@
     // tokens as needed.
     isTokenAutoRefreshEnabled: true,
   });
+  const auth = getAuth(app);
+  const database = getDatabase(app);
+  const firestore = getFirestore(app);
+
+  if (window.location.hostname === "localhost") {
+    connectAuthEmulator(auth, "http://localhost:9099");
+    connectDatabaseEmulator(database, "localhost", 9000);
+    connectFirestoreEmulator(firestore, "localhost", 8080);
+  } else {
+    const analytics = getAnalytics(app);
+  }
   signInAnonymously(auth).then((user) => {
     uid = user.user.uid;
 
