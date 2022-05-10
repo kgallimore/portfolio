@@ -94,21 +94,23 @@
             </div>
             {title}
             {#if data.link}
-              <a
-                on:click={(event) => onLinkClick("linkViews", event)}
-                href={data.link}
-                target="_blank"
+              <button
+                on:click={(event) => {
+                  onLinkClick("linkViews", event);
+                  window.open(data.link, "_blank").focus();
+                }}
                 class="rounded bg-gradient-to-br from-green-600 to-blue-600 p-2 m-2 hover:from-green-300 hover:to-blue-300 hover:text-gray-400"
-                >View</a
+                >View</button
               >
             {/if}
             {#if data.src}
-              <a
-                on:click={(event) => onLinkClick("sourceViews", event)}
-                href={data.src}
-                target="_blank"
+              <button
+                on:click={(event) => {
+                  onLinkClick("sourceViews", event);
+                  window.open(data.src, "_blank").focus();
+                }}
                 class="rounded bg-gradient-to-br from-green-600 to-blue-600 p-2 m-2 hover:from-green-300 hover:to-blue-300 hover:text-gray-400"
-                >Source</a
+                >Source</button
               >
             {/if}
           </div>

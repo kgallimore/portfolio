@@ -31,7 +31,10 @@
   } from "firebase/firestore";
   import { projects, Project } from "../projectsImport";
   import { firebaseConfig } from "../config/firebase";
-  import { getAnalytics } from "firebase/analytics";
+  import type { Analytics } from "firebase/analytics";
+  import { browser } from "$app/env";
+  import { onMount } from "svelte";
+  import { fade } from "svelte/transition";
 
   let projectList: Array<Project & { cleanName: string }> = projects.map((project) => ({
     ...project,
@@ -39,25 +42,30 @@
   }));
 
   const app = initializeApp(firebaseConfig);
-  if (window.location.hostname === "localhost") {
-    //@ts-expect-error Enable debug mode for app check
-    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-  }
-  const appCheck = initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider("6Le7w9gfAAAAAHH-lf6elzalGriMiQMUkGgIj0qS"),
-    isTokenAutoRefreshEnabled: true,
-  });
   const auth = getAuth(app);
   const database = getDatabase(app);
   const firestore = getFirestore(app);
+  let analytics: Analytics;
 
   if (window.location.hostname === "localhost") {
     connectAuthEmulator(auth, "http://localhost:9099");
     connectDatabaseEmulator(database, "localhost", 9000);
     connectFirestoreEmulator(firestore, "localhost", 8080);
+    //@ts-expect-error Enable debug mode for app check
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
   } else {
-    const analytics = getAnalytics(app);
+    onMount(async () => {
+      if (browser) {
+        const firebaseClient = await import("firebase/analytics");
+        analytics = firebaseClient.getAnalytics(app);
+      }
+    });
   }
+  const appCheck = initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider("6Le7w9gfAAAAAHH-lf6elzalGriMiQMUkGgIj0qS"),
+    isTokenAutoRefreshEnabled: true,
+  });
+
   signInAnonymously(auth).then((user) => {
     uid = user.user.uid;
 
@@ -65,6 +73,8 @@
       viewCounts = snapshot.val();
     });
   });
+
+  $: hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
   let viewCounts: {
     visitors: number;
@@ -92,10 +102,14 @@
     prevTranslate = 0;
 
   let uid = "";
+  let awaitingEnter = true;
 
   let arraySize = Math.ceil(Math.sqrt(projectNum));
 
   setInterval(() => {
+    if (awaitingEnter) {
+      return;
+    }
     spin += 0.005;
     if (
       currentPosition[0] === getXPos(projectNum - 1) &&
@@ -183,9 +197,6 @@
     type: "linkViews" | "sourceViews" | "views",
     e?: MouseEvent
   ) {
-    if (e) {
-      e.preventDefault();
-    }
     let cleanName = getCleanIndexName(currentIndex);
     if (cleanName && uid) {
       try {
@@ -239,119 +250,146 @@
 </script>
 
 <div class="h-screen w-screen">
-  <Canvas shadows={true}>
-    <PerspectiveCamera
-      position={{ x: currentPosition[0], y: cameraHeight, z: currentPosition[2] + 5 }}
-      lookAt={{ x: currentPosition[0], y: currentPosition[1], z: currentPosition[2] }}
-    />
-    <AmbientLight intensity={0.2} />
-    <Group position={{ x: 0, y: -1 / 2, z: 0 }}>
-      <Mesh
-        receiveShadow
-        rotation={{ x: -90 * (Math.PI / 180) }}
-        geometry={new PlaneGeometry(120, 80)}
-        position={{ x: 12, y: 0, z: 0 }}
-        material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
+  {#if awaitingEnter}
+    <div
+      out:fade
+      class="h-screen w-screen bg-black z-50 absolute top-0 left-0 grid place-items-center text-gray-100 text-center"
+    >
+      <div class="text-9xl">Hello There!</div>
+      <div>
+        A display of some of my more notable projects.<br />
+        By entering, your clicks and interests will be anonymously tracked.<br />
+        {#if hasTouch}<div>You can navigate by swiping.</div>{/if}
+      </div>
+      <div class="relative group">
+        <div
+          class="absolute -inset-0 rounded-lg blur opacity-70 bg-gradient-to-tr from-red-600 to-blue-700 group-hover:opacity-100 transition group-hover:duration-200 duration-1000"
+        />
+        <button
+          on:click={() => (awaitingEnter = false)}
+          class="relative flex bg-black rounded-lg p-3 text-gray-400 group-hover:text-white items-center transition group-hover:duration-200 duration-1000"
+          ><span>I Agree to Enter</span></button
+        >
+      </div>
+    </div>
+  {:else}
+    <Canvas shadows={true}>
+      <PerspectiveCamera
+        position={{ x: currentPosition[0], y: cameraHeight, z: currentPosition[2] + 5 }}
+        lookAt={{ x: currentPosition[0], y: currentPosition[1], z: currentPosition[2] }}
       />
-      <Mesh
-        receiveShadow
-        geometry={new PlaneGeometry(180, 80)}
-        position={{ x: 0, y: 0, z: -40 }}
-        material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
-      />
-    </Group>
-    <FogExp2 color={"black"} density={fogLevel} />
-    {#each projectList as project, i}
-      {#if i === projectNum - 1}
-        <Object3DInstance
-          object={project.model}
-          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
-          scale={project.scale
-            ? { x: project.scale, y: project.scale, z: project.scale }
-            : { x: 0.05, y: 0.05, z: 0.05 }}
-          rotation={{
-            x: project.rotation?.[0] ?? 0,
-            y: spin,
-            z: project.rotation?.[1] ?? 0,
-          }}
-          castShadow
-          receiveShadow
-        />
-      {:else if project.model}
-        <Object3DInstance
-          object={project.model}
-          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
-          scale={project.scale
-            ? { x: project.scale, y: project.scale, z: project.scale }
-            : { x: 0.05, y: 0.05, z: 0.05 }}
-          rotation={{
-            x: project.rotation?.[0] ?? 0,
-            y: spin,
-            z: project.rotation?.[1] ?? 0,
-          }}
-          castShadow
-          receiveShadow
-        />
-      {:else if project.glbFile}
-        <GLTF
-          castShadow
-          receiveShadow
-          url={"/models/" + project.glbFile}
-          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
-          scale={project.scale
-            ? { x: project.scale, y: project.scale, z: project.scale }
-            : { x: 0.05, y: 0.05, z: 0.05 }}
-        />
-      {:else}
+      <AmbientLight intensity={0.2} />
+      <Group position={{ x: 0, y: -1 / 2, z: 0 }}>
         <Mesh
-          interactive
-          on:click={() => alert("hey")}
-          geometry={project.geo ?? new BoxBufferGeometry()}
-          material={new MeshStandardMaterial({
-            color:
-              project.color ?? "#" + Math.floor(Math.random() * 16777215).toString(16),
-          })}
-          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
-          scale={{ x: 1, y: 1, z: 1 }}
-          rotation={{ x: 0, y: spin, z: 0 }}
           receiveShadow
-          castShadow
+          rotation={{ x: -90 * (Math.PI / 180) }}
+          geometry={new PlaneGeometry(120, 80)}
+          position={{ x: 12, y: 0, z: 0 }}
+          material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
         />
-      {/if}
-      <DirectionalLight
-        intensity={0.2}
-        position={{ x: getXPos(i) + 3, y: project.zPos ?? 0.001 + 5, z: getYPos(i) + 5 }}
-        shadow={{ mapSize: [2048, 2048] }}
-        target={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+        <Mesh
+          receiveShadow
+          geometry={new PlaneGeometry(180, 80)}
+          position={{ x: 0, y: 0, z: -40 }}
+          material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
+        />
+      </Group>
+      <FogExp2 color={"black"} density={fogLevel} />
+      {#each projectList as project, i}
+        {#if i === projectNum - 1}
+          <Object3DInstance
+            object={project.model}
+            position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+            scale={project.scale
+              ? { x: project.scale, y: project.scale, z: project.scale }
+              : { x: 0.05, y: 0.05, z: 0.05 }}
+            rotation={{
+              x: project.rotation?.[0] ?? 0,
+              y: spin,
+              z: project.rotation?.[1] ?? 0,
+            }}
+            castShadow
+            receiveShadow
+          />
+        {:else if project.model}
+          <Object3DInstance
+            object={project.model}
+            position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+            scale={project.scale
+              ? { x: project.scale, y: project.scale, z: project.scale }
+              : { x: 0.05, y: 0.05, z: 0.05 }}
+            rotation={{
+              x: project.rotation?.[0] ?? 0,
+              y: spin,
+              z: project.rotation?.[1] ?? 0,
+            }}
+            castShadow
+            receiveShadow
+          />
+        {:else if project.glbFile}
+          <GLTF
+            castShadow
+            receiveShadow
+            url={"/models/" + project.glbFile}
+            position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+            scale={project.scale
+              ? { x: project.scale, y: project.scale, z: project.scale }
+              : { x: 0.05, y: 0.05, z: 0.05 }}
+          />
+        {:else}
+          <Mesh
+            geometry={project.geo ?? new BoxBufferGeometry()}
+            material={new MeshStandardMaterial({
+              color:
+                project.color ?? "#" + Math.floor(Math.random() * 16777215).toString(16),
+            })}
+            position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+            scale={{ x: 1, y: 1, z: 1 }}
+            rotation={{ x: 0, y: spin, z: 0 }}
+            receiveShadow
+            castShadow
+          />
+        {/if}
+        <DirectionalLight
+          intensity={0.2}
+          position={{
+            x: getXPos(i) + 3,
+            y: project.zPos ?? 0.001 + 5,
+            z: getYPos(i) + 5,
+          }}
+          shadow={{ mapSize: [2048, 2048] }}
+          target={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+        />
+      {/each}
+    </Canvas>
+  {/if}
+</div>
+{#if !awaitingEnter}
+  <div class="text-white text-xl z-20 w-screen fixed top-0 left-0 text-center">
+    Visitors: {viewCounts?.visitors ?? 0}
+  </div>
+  <div
+    bind:this={cardContainer}
+    style="top:100%"
+    class="fixed flex animate-rollin z-10 h-64 md:h-48"
+  >
+    {#each projectList as project, index}
+      <CustomCard
+        on:touchstart={(e) => touchStart(e)}
+        on:touchend={(e) => touchEnd(e, index)}
+        on:touchmove={(e) => touchMove(e)}
+        title={project.title}
+        data={project}
+        onLinkClick={updateLinkClick}
+        clickCounts={viewCounts?.items?.[project.cleanName] ?? {
+          views: 0,
+          linkViews: 0,
+          sourceViews: 0,
+        }}
+        {navigate}
+        {index}
+        {projectList}
       />
     {/each}
-  </Canvas>
-</div>
-
-<div class="text-white text-xl z-50 w-screen fixed top-0 left-0 text-center">
-  Visitors: {viewCounts?.visitors ?? 0}
-</div>
-<div
-  bind:this={cardContainer}
-  style="top:100%"
-  class="fixed flex animate-rollin z-40 h-64 md:h-48"
->
-  {#each projectList as project, index}
-    <CustomCard
-      on:touchstart={(e) => touchStart(e)}
-      on:touchend={(e) => touchEnd(e, index)}
-      on:touchmove={(e) => touchMove(e)}
-      title={project.title}
-      data={project}
-      onLinkClick={updateLinkClick}
-      clickCounts={viewCounts?.items?.[project.cleanName] ?? {
-        views: 0,
-        linkViews: 0,
-        sourceViews: 0,
-      }}
-      {navigate}
-      {index}
-      {projectList}
-    />
-  {/each}
-</div>
+  </div>
+{/if}
