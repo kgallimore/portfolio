@@ -66,13 +66,17 @@
     isTokenAutoRefreshEnabled: true,
   });
 
-  signInAnonymously(auth).then((user) => {
-    uid = user.user.uid;
+  function enter() {
+    signInAnonymously(auth).then((user) => {
+      awaitingEnter = false;
 
-    onValue(ref(database, "counts"), (snapshot) => {
-      viewCounts = snapshot.val();
+      uid = user.user.uid;
+
+      onValue(ref(database, "counts"), (snapshot) => {
+        viewCounts = snapshot.val();
+      });
     });
-  });
+  }
 
   $: hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
@@ -266,7 +270,7 @@
           class="absolute -inset-0 rounded-lg blur opacity-70 bg-gradient-to-tr from-red-600 to-blue-700 group-hover:opacity-100 transition group-hover:duration-200 duration-1000"
         />
         <button
-          on:click={() => (awaitingEnter = false)}
+          on:click={enter}
           class="relative flex bg-black rounded-lg p-3 text-gray-400 group-hover:text-white items-center transition group-hover:duration-200 duration-1000"
           ><span>I Agree to Enter</span></button
         >
