@@ -39,12 +39,12 @@
       {#key clickCounts?.views ?? 0}
         <span in:fly={{ y: -20, duration: 2000 }}> {clickCounts?.views ?? 0}</span>
       {/key}
-      View{clickCounts?.views === 1 ? "" : "s"}
+      View{clickCounts?.views === 1 ? "" : "s"}.
       {#if data.link}
         {#key clickCounts?.linkViews ?? 0}
           <span in:fly={{ y: -20, duration: 2000 }}> {clickCounts?.linkViews ?? 0}</span>
         {/key}
-        View Click{clickCounts?.linkViews === 1 ? "" : "s"}
+        View Click{clickCounts?.linkViews === 1 ? "" : "s"}.
       {/if}
       {#if data.src}
         {#key clickCounts?.sourceViews ?? 0}
@@ -52,7 +52,7 @@
             {clickCounts?.sourceViews ?? 0}</span
           >
         {/key}
-        Source Click{clickCounts?.sourceViews === 1 ? "" : "s"}
+        Source Click{clickCounts?.sourceViews === 1 ? "" : "s"}.
       {/if}
     </div>
   </div>
