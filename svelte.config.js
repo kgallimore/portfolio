@@ -16,7 +16,6 @@ const config = {
     prerender: {
       enabled: false,
     },
-    ssr: false,
     adapter: adapter({
       fallback: "400.html",
     }),
