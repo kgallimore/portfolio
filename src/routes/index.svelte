@@ -45,9 +45,6 @@
   }
   const appCheck = initializeAppCheck(app, {
     provider: new ReCaptchaV3Provider("6Le7w9gfAAAAAHH-lf6elzalGriMiQMUkGgIj0qS"),
-
-    // Optional argument. If true, the SDK automatically refreshes App Check
-    // tokens as needed.
     isTokenAutoRefreshEnabled: true,
   });
   const auth = getAuth(app);
