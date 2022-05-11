@@ -339,6 +339,10 @@
             scale={project.scale
               ? { x: project.scale, y: project.scale, z: project.scale }
               : { x: 0.05, y: 0.05, z: 0.05 }}
+            rotation={{
+              x: project.rotation?.[0] ?? 0,
+              y: spin,
+            }}
           />
         {:else}
           <Mesh

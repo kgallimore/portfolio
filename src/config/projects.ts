@@ -83,7 +83,8 @@ export const projects: Array<Project> = [
     image: "smiley.svg",
     description: "A web application for users to vote on Lucky Patcher patchable apps.",
 
-    geo: new THREE.SphereGeometry(0.5, 16, 16),
+    glbFile: "smiley.glb",
+    rotation: [0, 1],
     //model: luckylp,
     scale: 0.5,
     color: "yellow",
