@@ -15,6 +15,7 @@
     Object3DInstance,
     Mesh,
     PerspectiveCamera,
+    Text,
   } from "threlte";
   import anime from "animejs";
   import CustomCard from "./components/_CustomCard.svelte";
@@ -29,7 +30,7 @@
     serverTimestamp,
     collection,
   } from "firebase/firestore";
-  import { projects, Project } from "../projectsImport";
+  import { projects, Project, TechTypes, Languages } from "../projectsImport";
   import { firebaseConfig } from "../config/firebase";
   import type { Analytics } from "firebase/analytics";
   import { browser } from "$app/env";
@@ -67,6 +68,14 @@
   });
 
   function enter() {
+    generateStatistics();
+    console.log(
+      (2.5 *
+        (Object.keys(generatedStatistics.tech.data).length +
+          Object.keys(generatedStatistics.languages.data).length)) /
+        2 -
+        (arraySize * 12) / 2
+    );
     signInAnonymously(auth).then((user) => {
       awaitingEnter = false;
 
@@ -78,7 +87,7 @@
     });
   }
 
-  $: hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+  let hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
   let viewCounts: {
     visitors: number;
@@ -98,6 +107,13 @@
   let differences = [12, 0, 12];
   let projectNum = projectList.length;
   $: projectNum = projectList.length;
+  let generatedStatistics: {
+    tech: { data: { [key in TechTypes]?: number }; max: number; min: number };
+    languages: { data: { [key in Languages]?: number }; max: number; min: number };
+  } = {
+    tech: { max: 0, min: Infinity, data: {} },
+    languages: { max: 0, min: Infinity, data: {} },
+  };
 
   let animeFinished = true,
     isDragging = false,
@@ -119,14 +135,32 @@
       currentPosition[0] === getXPos(projectNum - 1) &&
       currentPosition[2] === getYPos(projectNum - 1)
     ) {
-      if (fogLevel > 0.02) fogLevel -= 0.0004;
-      if (cameraHeight > 0.75) cameraHeight -= 0.0008;
+      if (fogLevel > 0.02) fogLevel -= 0.0008;
+      if (cameraHeight < 1.5) cameraHeight += 0.005;
+      if (currentPosition[1] < 1) {
+        currentPosition[1] += 0.01;
+      } else {
+        target[1] = 1;
+        currentPosition[1] = 1;
+      }
     } else {
-      if (fogLevel < 0.1) fogLevel += 0.0004;
-      if (cameraHeight < 1) cameraHeight += 0.0008;
+      if (fogLevel < 0.1) fogLevel += 0.0008;
+      if (cameraHeight > 1) cameraHeight -= 0.005;
+      if (currentPosition[1] > 0) {
+        currentPosition[1] -= 0.01;
+      } else {
+        target[1] = 0;
+        currentPosition[1] = 0;
+      }
     }
     for (let i = 0; i < 3; i++) {
-      if (Math.abs(target[i] - currentPosition[i]) < differences[i] * transitionSpeed) {
+      if (i === 1) {
+        continue;
+      }
+      if (
+        currentPosition[i] !== target[i] &&
+        Math.abs(target[i] - currentPosition[i]) < differences[i] * transitionSpeed
+      ) {
         currentPosition[i] = target[i];
       } else if (target[i] > currentPosition[i]) {
         currentPosition[i] += differences[i] * transitionSpeed;
@@ -150,19 +184,22 @@
     return (Math.floor(index / arraySize) || 0) * 12;
   }
 
-  function navigate(toIndex: number, shiftX: number) {
+  function navigate(toIndex: number) {
     if (
       target.every((value, index) => value === currentPosition[index]) &&
-      animeFinished
+      animeFinished &&
+      toIndex !== currentIndex
     ) {
+      //Correct weird javascript math
+      // Correct any out of bounds indexes.
       if (toIndex < 0) {
         toIndex = projectNum + toIndex;
       } else if (toIndex > projectNum - 1) {
         toIndex = toIndex - projectNum;
       }
+
       let y = getYPos(toIndex);
       let x = getXPos(toIndex);
-      console.log("navigating to", toIndex);
       differences = [
         Math.abs(currentPosition[0] - x),
         0,
@@ -170,6 +207,8 @@
       ];
       target[0] = x;
       target[2] = y;
+      // Amount of cards to animate through
+      let shiftX = (100 / projectNum) * (currentIndex - toIndex);
       anime({
         targets: cardContainer,
         translateX: (shiftX < 0 ? "-" : "+") + "=" + Math.abs(shiftX).toString() + "%",
@@ -186,6 +225,8 @@
           updateLinkClick("views");
         },
       });
+    } else {
+      console.log("not ready", currentPosition, target);
     }
   }
 
@@ -229,10 +270,8 @@
     e.preventDefault();
     isDragging = false;
     const movedBy = currentTranslate - prevTranslate;
-    if (movedBy < window.innerWidth / -4)
-      navigate(i + 1, i === projectNum - 1 ? 100 - 100 / projectNum : -100 / projectNum);
-    if (movedBy > window.innerWidth / 4)
-      navigate(i - 1, i === 0 ? -100 + 100 / projectNum : 100 / projectNum);
+    if (movedBy < window.innerWidth / -4) navigate(i + 1);
+    if (movedBy > window.innerWidth / 4) navigate(i - 1);
   }
 
   function touchMove(e: TouchEvent | MouseEvent) {
@@ -250,6 +289,41 @@
     } else {
       return event.pageX;
     }
+  }
+
+  function generateStatistics() {
+    projectList.forEach((acc) => {
+      acc.tech.forEach((item) => {
+        if (item === "?") {
+          return;
+        }
+        if (!generatedStatistics.tech.data[item]) {
+          generatedStatistics.tech.data[item] = 1;
+        } else {
+          generatedStatistics.tech.data[item] += 1;
+          if (generatedStatistics.tech.data[item] > generatedStatistics.tech.max) {
+            generatedStatistics.tech.max = generatedStatistics.tech.data[item];
+          }
+        }
+      });
+      acc.languages.forEach((language) => {
+        if (language === "...?") {
+          return;
+        }
+        if (!generatedStatistics.languages.data[language]) {
+          generatedStatistics.languages.data[language] = 1;
+        } else {
+          generatedStatistics.languages.data[language] += 1;
+          if (
+            generatedStatistics.languages.data[language] >
+            generatedStatistics.languages.max
+          ) {
+            generatedStatistics.languages.max =
+              generatedStatistics.languages.data[language];
+          }
+        }
+      });
+    });
   }
 </script>
 
@@ -298,24 +372,60 @@
           material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
         />
       </Group>
+      <Group
+        position={{
+          x:
+            (arraySize * 12) / 2 -
+            (2.5 *
+              (Object.keys(generatedStatistics.tech.data).length +
+                Object.keys(generatedStatistics.languages.data).length)) /
+              2,
+          y: 0,
+          z: -16,
+        }}
+      >
+        {#each [...Object.entries(generatedStatistics.tech.data).sort((a, b) => a[1] - b[1]), ...Object.entries(generatedStatistics.languages.data).sort((a, b) => a[1] - b[1])] as [name, number], index}
+          <Text
+            text={name}
+            castShadow={true}
+            scale={10}
+            textAlign="center"
+            color="white"
+            anchorY="center"
+            outlineColor="black"
+            outlineWidth={0.01}
+            rotation={{ z: 90 * (Math.PI / 180) }}
+            position={{
+              x: 2.5 * index - 0.75,
+              y: (20 * (number / projectNum)) / 2 - 1,
+              z: 1.1,
+            }}
+          />
+          <Mesh
+            receiveShadow
+            castShadow
+            geometry={new BoxBufferGeometry(2, 20 * (number / projectNum), 2)}
+            position={{ x: 2.5 * index, y: (20 * (number / projectNum)) / 2, z: 0 }}
+            material={new MeshStandardMaterial({
+              side: DoubleSide,
+              color: "#" + Math.floor(Math.random() * 16777215).toString(16),
+            })}
+          />
+        {/each}
+      </Group>
       <FogExp2 color={"black"} density={fogLevel} />
       {#each projectList as project, i}
-        {#if i === projectNum - 1}
-          <Object3DInstance
-            object={project.model}
-            position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
-            scale={project.scale
-              ? { x: project.scale, y: project.scale, z: project.scale }
-              : { x: 0.05, y: 0.05, z: 0.05 }}
-            rotation={{
-              x: project.rotation?.[0] ?? 0,
-              y: spin,
-              z: project.rotation?.[1] ?? 0,
-            }}
-            castShadow
-            receiveShadow
-          />
-        {:else if project.model}
+        <Text
+          text={project.title}
+          interactive
+          castShadow
+          scale={3}
+          textAlign="center"
+          anchorX="center"
+          on:click={() => navigate(i)}
+          position={{ x: getXPos(i), y: (project.zPos ?? 0.001) + 1.5, z: getYPos(i) }}
+        />
+        {#if project.model}
           <Object3DInstance
             object={project.model}
             position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
@@ -354,8 +464,8 @@
             position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
             scale={{ x: 1, y: 1, z: 1 }}
             rotation={{ x: 0, y: spin, z: 0 }}
-            receiveShadow
-            castShadow
+            receiveShadow={true}
+            castShadow={true}
           />
         {/if}
         <DirectionalLight
@@ -376,11 +486,7 @@
   <div class="text-white text-xl z-20 w-screen fixed top-0 left-0 text-center">
     Visitors: {viewCounts?.visitors ?? 0}
   </div>
-  <div
-    bind:this={cardContainer}
-    style="top:100%"
-    class="fixed flex animate-rollin z-10 h-64 md:h-48"
-  >
+  <div bind:this={cardContainer} class="fixed flex animate-rollin z-10 h-64 md:h-48">
     {#each projectList as project, index}
       <CustomCard
         on:touchstart={(e) => touchStart(e)}

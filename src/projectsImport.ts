@@ -1,5 +1,5 @@
 import { projects as data } from "./config/projects";
-type TechTypes =
+export type TechTypes =
   | "Docker"
   | "Firebase"
   | "Electron"
@@ -19,7 +19,7 @@ type TechTypes =
   | "animejs"
   | "?";
 
-type Languages =
+export type Languages =
   | "Javascript"
   | "Typescript"
   | "PHP"
