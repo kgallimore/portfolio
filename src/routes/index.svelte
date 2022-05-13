@@ -37,10 +37,40 @@
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
 
-  let projectList: Array<Project & { cleanName: string }> = projects.map((project) => ({
-    ...project,
-    cleanName: cleanName(project.title),
-  }));
+  let projectList: Array<Project & { cleanName: string }> = projects.map((project) => {
+    // Pull Github api to add any missing languages that have a prevalance over 10%
+    if (project.src?.includes("github.com")) {
+      let url: URL | null;
+      try {
+        url = new URL(project.src);
+      } catch (e) {
+        url = null;
+      }
+      if (url) {
+        url.pathname.split("/").splice(0, 1).join("/");
+        fetch(`https://api.github.com/repos${url.pathname}/languages`).then((res) => {
+          if (res.ok) {
+            res.json().then((data: { [key in Languages]: number }) => {
+              let totalData = Object.values(data).reduce((a, b) => a + b, 0);
+              Object.entries(data)
+                .filter(([key, bytes]) => {
+                  return bytes / totalData > 0.1;
+                })
+                .forEach(([key, bytes]) => {
+                  if (!project.languages.includes(key as Languages)) {
+                    project.languages.push(key as Languages);
+                  }
+                });
+            });
+          }
+        });
+      }
+    }
+    return {
+      ...project,
+      cleanName: cleanName(project.title),
+    };
+  });
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -69,13 +99,6 @@
 
   function enter() {
     generateStatistics();
-    console.log(
-      (2.5 *
-        (Object.keys(generatedStatistics.tech.data).length +
-          Object.keys(generatedStatistics.languages.data).length)) /
-        2 -
-        (arraySize * 12) / 2
-    );
     signInAnonymously(auth).then((user) => {
       awaitingEnter = false;
 
@@ -135,7 +158,7 @@
       currentPosition[0] === getXPos(projectNum - 1) &&
       currentPosition[2] === getYPos(projectNum - 1)
     ) {
-      if (fogLevel > 0.02) fogLevel -= 0.0008;
+      if (fogLevel > 0.01) fogLevel -= 0.0008;
       if (cameraHeight < 1.5) cameraHeight += 0.005;
       if (currentPosition[1] < 1) {
         currentPosition[1] += 0.01;
@@ -144,7 +167,7 @@
         currentPosition[1] = 1;
       }
     } else {
-      if (fogLevel < 0.1) fogLevel += 0.0008;
+      if (fogLevel < 0.09) fogLevel += 0.0008;
       if (cameraHeight > 1) cameraHeight -= 0.005;
       if (currentPosition[1] > 0) {
         currentPosition[1] -= 0.01;
@@ -361,13 +384,13 @@
         <Mesh
           receiveShadow
           rotation={{ x: -90 * (Math.PI / 180) }}
-          geometry={new PlaneGeometry(120, 80)}
+          geometry={new PlaneGeometry(180, 80)}
           position={{ x: 12, y: 0, z: 0 }}
           material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
         />
         <Mesh
           receiveShadow
-          geometry={new PlaneGeometry(180, 80)}
+          geometry={new PlaneGeometry(200, 80)}
           position={{ x: 0, y: 0, z: -40 }}
           material={new MeshStandardMaterial({ side: DoubleSide, color: "red" })}
         />
@@ -417,13 +440,23 @@
       {#each projectList as project, i}
         <Text
           text={project.title}
-          interactive
           castShadow
           scale={3}
           textAlign="center"
           anchorX="center"
-          on:click={() => navigate(i)}
           position={{ x: getXPos(i), y: (project.zPos ?? 0.001) + 1.5, z: getYPos(i) }}
+        />
+        <Mesh
+          on:click={() => navigate(i)}
+          interactive
+          geometry={new BoxBufferGeometry()}
+          material={new MeshStandardMaterial({
+            transparent: true,
+            opacity: 0,
+          })}
+          position={{ x: getXPos(i), y: project.zPos ?? 0.001, z: getYPos(i) }}
+          scale={{ x: 1.5, y: 2, z: 1.5 }}
+          rotation={{ x: 0, y: 0, z: 0 }}
         />
         {#if project.model}
           <Object3DInstance

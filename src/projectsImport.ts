@@ -3,7 +3,6 @@ export type TechTypes =
   | "Docker"
   | "Firebase"
   | "Electron"
-  | "Svelte"
   | "Websockets"
   | "Chrome Extension"
   | "Node"
@@ -20,8 +19,12 @@ export type TechTypes =
   | "?";
 
 export type Languages =
-  | "Javascript"
-  | "Typescript"
+  | "JavaScript"
+  | "TypeScript"
+  | "Svelte"
+  | "CSS"
+  | "HTML"
+  | "NSIS"
   | "PHP"
   | "Python"
   | "Arduino"
